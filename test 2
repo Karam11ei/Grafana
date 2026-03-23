@@ -1,0 +1,32 @@
+const payload = {};
+
+// 1. Hole den Empfänger aus dem Eingabefeld
+context.panel.elements.forEach((element) => {
+  if (element.value !== undefined) {
+    payload[element.id] = element.value;
+  }
+});
+
+// 2. Werte aus den Queries direkt auslesen
+// Wir nutzen hier den Pfad, den Grafana für Stat-Panels verwendet
+try {
+  // Query A (Erste Query)
+  payload.strom_evu = context.data[0].series[0].fields[1].state.calcs.last;
+  
+  // Query B (Zweite Query)
+  payload.pv_erzeugung = context.data[1].series[0].fields[1].state.calcs.last;
+  
+  // Query C (Dritte Query)
+  payload.gas_verbrauch = context.data[2].series[0].fields[1].state.calcs.last;
+
+  // Query D / Expression (Vierte Reihe)
+  payload.gesamt_verbrauch = context.data[3].series[0].fields[1].state.calcs.last;
+} catch (err) {
+  payload.error = "Datenpfad nicht gefunden: " + err.message;
+}
+
+// 3. Zeitraum mitschicken
+payload.zeit_von = context.grafana.timeRange.from;
+payload.zeit_bis = context.grafana.timeRange.to;
+
+return payload;
