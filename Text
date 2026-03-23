@@ -1,0 +1,33 @@
+const payload = {};
+
+// 1. Hole alle Formularfelder (wie die E-Mail Adresse)
+context.panel.elements.forEach((element) => {
+  if (element.value !== undefined) {
+    payload[element.id] = element.value;
+  }
+});
+
+// 2. Suche die Energie-Werte in den Queries
+if (context.data && context.data.length > 0) {
+  context.data.forEach((series, index) => {
+    // Wir suchen in jeder Query den letzten berechneten Wert
+    try {
+      const field = series.series[0].fields.find(f => f.name === 'Value' || f.type === 'number');
+      const val = field.state.calcs.last;
+      
+      // Wir ordnen die Werte anhand des Index zu (0=A, 1=B, 2=C...)
+      if (index === 0) payload.strom_evu = val;
+      if (index === 1) payload.pv_erzeugung = val;
+      if (index === 2) payload.gas_verbrauch = val;
+      if (index === 3) payload.gesamt_verbrauch = val;
+    } catch (e) {
+      payload["error_query_" + index] = "Konnte Wert nicht lesen";
+    }
+  });
+}
+
+// 3. Zeitraum mitschicken (für den Briefkopf der Rechnung)
+payload.datum_von = context.grafana.timeRange.from;
+payload.datum_bis = context.grafana.timeRange.to;
+
+return payload;
