@@ -1,32 +1,39 @@
-const payload = {};
+// Daten aus dem Payload holen
+const empfaenger = msg.payload.Empfeanger;
+const strom = msg.payload.Stromsumme || 0;
+const gas = msg.payload.GasSumme || 0;
+const datum = new Date().toLocaleDateString('de-DE');
 
-// 1. E-Mail/Eingabefelder auslesen (Dein Teil war gut!)
-elements.forEach((element) => {
-  if (element.value !== undefined) {
-    payload[element.id] = element.value;
-  }
-});
+// Das HTML Layout der Rechnung
+msg.payload = `
+<html>
+<head>
+    <style>
+        body { font-family: Arial; padding: 40px; }
+        .header { text-align: right; color: #555; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #2c3e50; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .total { font-weight: bold; font-size: 1.2em; }
+    </style>
+</head>
+<body>
+    <div class="header">Datum: ${datum}</div>
+    <h1>Energieabrechnung</h1>
+    <p>Empfänger: <strong>${empfaenger}</strong></p>
+    
+    <table>
+        <tr><th>Position</th><th>Verbrauch / Wert</th></tr>
+        <tr><td>Stromverbrauch Bezug</td><td>${strom} kWh</td></tr>
+        <tr><td>Gasverbrauch Halle</td><td>${gas} m³</td></tr>
+    </table>
+    
+    <p>Vielen Dank für die Nutzung!</p>
+</body>
+</html>
+`;
 
-// Funktion, um den letzten Wert einer Query sicher zu finden
-const getValueByRef = (refId) => {
-  const series = data.series.find(s => s.refId === refId);
-  if (!series) return null;
-  
-  // Suche das Feld, das Zahlen enthält (meistens das zweite Feld nach der Zeit)
-  const valueField = series.fields.find(f => f.type === 'number') || series.fields[0];
-  
-  // Nimm den allerletzten Wert aus diesem Feld
-  return valueField.values.get(valueField.values.length - 1);
-};
-
-// 2. Werte sicher zuweisen
-payload.strom_evu = getValueByRef('A');
-payload.pv_erzeugung = getValueByRef('B');
-payload.gas_verbrauch = getValueByRef('C');
-payload.gesamt_verbrauch = getValueByRef('D');
-
-// 3. Zeitraum (Verwende das Standard-Format für APIs)
-payload.zeit_von = window.location.search.includes('from') ? data.timeRange.from.toISOString() : null;
-payload.zeit_bis = data.timeRange.to.toISOString();
-
-return payload;
+// Dateiname für das PDF festlegen
+msg.filename = "rechnung_" + Date.now() + ".pdf";
+return msg;
