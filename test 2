@@ -1,41 +1,32 @@
-// 1. E-Mail aus dem Formularfeld auslesen
-// Ersetze 'email' durch die ID, die du deinem E-Mail-Feld gegeben hast
-const email = elements.find(el => el.id === 'email')?.value;
+const payload = {};
 
-// 2. Werte aus allen 4 Queries (A, B, C, D) extrahieren
-// Wir suchen in data.series nach der jeweiligen refId
-const valA = data.series.find(s => s.refId === 'A')?.fields.find(f => f.type === 'number')?.values.get(0);
-const valB = data.series.find(s => s.refId === 'B')?.fields.find(f => f.type === 'number')?.values.get(0);
-const valC = data.series.find(s => s.refId === 'C')?.fields.find(f => f.type === 'number')?.values.get(0);
-const valD = data.series.find(s => s.refId === 'D')?.fields.find(f => f.type === 'number')?.values.get(0);
+// 1. E-Mail/Eingabefelder auslesen (Dein Teil war gut!)
+elements.forEach((element) => {
+  if (element.value !== undefined) {
+    payload[element.id] = element.value;
+  }
+});
 
-// 3. Payload für die API vorbereiten
-const payload = {
-  email: email,
-  data: {
-    hauptzahler_verbrauch: valA,
-    erzeugte_energie: valB,
-    query_c: valC, // Benenne diese Felder so, wie deine API sie erwartet
-    query_d: valD
-  },
-  sentAt: new Date().toISOString()
+// Funktion, um den letzten Wert einer Query sicher zu finden
+const getValueByRef = (refId) => {
+  const series = data.series.find(s => s.refId === refId);
+  if (!series) return null;
+  
+  // Suche das Feld, das Zahlen enthält (meistens das zweite Feld nach der Zeit)
+  const valueField = series.fields.find(f => f.type === 'number') || series.fields[0];
+  
+  // Nimm den allerletzten Wert aus diesem Feld
+  return valueField.values.get(valueField.values.length - 1);
 };
 
-// 4. Daten an deine API senden
-fetch('https://deine-api-url.de/endpoint', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify(payload),
-})
-.then(response => {
-  if (response.ok) {
-    notifySuccess(['Erfolgreich', `Daten an ${email} gesendet.`]);
-  } else {
-    notifyError(['Fehler', 'Server antwortete mit ' + response.status]);
-  }
-})
-.catch(err => {
-  notifyError(['Netzwerkfehler', err.toString()]);
-});
+// 2. Werte sicher zuweisen
+payload.strom_evu = getValueByRef('A');
+payload.pv_erzeugung = getValueByRef('B');
+payload.gas_verbrauch = getValueByRef('C');
+payload.gesamt_verbrauch = getValueByRef('D');
+
+// 3. Zeitraum (Verwende das Standard-Format für APIs)
+payload.zeit_von = window.location.search.includes('from') ? data.timeRange.from.toISOString() : null;
+payload.zeit_bis = data.timeRange.to.toISOString();
+
+return payload;
