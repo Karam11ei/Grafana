@@ -1,39 +1,51 @@
-// Daten aus dem Payload holen
-const empfaenger = msg.payload.Empfeanger;
-const strom = msg.payload.Stromsumme || 0;
-const gas = msg.payload.GasSumme || 0;
-const datum = new Date().toLocaleDateString('de-DE');
+// Daten aus Grafana extrahieren
+const series = data.series.map((s) => {
+  const sTime = s.fields.find((f) => f.type === 'time').values;
+  const sValue = s.fields.find((f) => f.name === 'value' || f.type === 'number').values;
 
-// Das HTML Layout der Rechnung
-msg.payload = `
-<html>
-<head>
-    <style>
-        body { font-family: Arial; padding: 40px; }
-        .header { text-align: right; color: #555; }
-        h1 { color: #2c3e50; border-bottom: 2px solid #2c3e50; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        .total { font-weight: bold; font-size: 1.2em; }
-    </style>
-</head>
-<body>
-    <div class="header">Datum: ${datum}</div>
-    <h1>Energieabrechnung</h1>
-    <p>Empfänger: <strong>${empfaenger}</strong></p>
-    
-    <table>
-        <tr><th>Position</th><th>Verbrauch / Wert</th></tr>
-        <tr><td>Stromverbrauch Bezug</td><td>${strom} kWh</td></tr>
-        <tr><td>Gasverbrauch Halle</td><td>${gas} m³</td></tr>
-    </table>
-    
-    <p>Vielen Dank für die Nutzung!</p>
-</body>
-</html>
-`;
+  return {
+    name: s.refId || s.name,
+    type: 'line',
+    sampling: 'lttb', // Optimiert die Darstellung bei vielen Datenpunkten
+    smooth: true,     // Macht die Kurven weicher
+    symbol: 'none',   // Entfernt die Punkte auf der Linie für einen saubereren Look
+    lineStyle: {
+      width: 2
+    },
+    areaStyle: {
+      opacity: 0.2    // Dezente Füllung unter der Linie
+    },
+    data: sValue.map((val, i) => [sTime[i], val])
+  };
+});
 
-// Dateiname für das PDF festlegen
-msg.filename = "rechnung_" + Date.now() + ".pdf";
-return msg;
+return {
+  tooltip: {
+    trigger: 'axis',
+    confine: true
+  },
+  legend: {
+    show: true,
+    bottom: 0
+  },
+  grid: {
+    left: '3%',
+    right: '4%',
+    bottom: '10%',
+    containLabel: true
+  },
+  xAxis: {
+    type: 'time',
+    boundaryGap: false
+  },
+  yAxis: {
+    type: 'value',
+    splitLine: {
+      show: true,
+      lineStyle: {
+        type: 'dashed'
+      }
+    }
+  },
+  series: series
+};
