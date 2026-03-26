@@ -5,9 +5,12 @@ AND "entity_id" = 's02_verbrauch_zahlerstand_m3'
 GROUP BY time(1h) FILL(0)
 
 
+// Wir nutzen 'context', um sicher auf die Grafana-Daten zuzugreifen
+const series = context.panel.data.series[0];
 
-const series = data.series[0];
-if (!series) return {};
+if (!series) {
+  return {}; // Beendet das Skript sauber, wenn noch keine Daten da sind
+}
 
 const timeField = series.fields.find((f) => f.type === 'time').values;
 const valueField = series.fields.find((f) => f.name === 'difference').values;
