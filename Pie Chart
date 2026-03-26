@@ -1,0 +1,4 @@
+SELECT difference(last("value")) 
+FROM "kWh" 
+WHERE ("entity_id" = 'm_bus_2_energie_kwh') AND $timeFilter 
+GROUP BY time($__interval) fill(0)
