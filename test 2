@@ -1,51 +1,164 @@
-// Daten aus Grafana extrahieren
-const series = data.series.map((s) => {
-  const sTime = s.fields.find((f) => f.type === 'time').values;
-  const sValue = s.fields.find((f) => f.name === 'value' || f.type === 'number').values;
+SELECT DIFFERENCE(LAST("value")) AS "difference"
+FROM "home_assistant"."autogen"."m³"
+WHERE $timeFilter
+AND "entity_id" = 's02_verbrauch_zahlerstand_m3'
+GROUP BY time(1h) FILL(0)
 
-  return {
-    name: s.refId || s.name,
-    type: 'line',
-    sampling: 'lttb', // Optimiert die Darstellung bei vielen Datenpunkten
-    smooth: true,     // Macht die Kurven weicher
-    symbol: 'none',   // Entfernt die Punkte auf der Linie für einen saubereren Look
-    lineStyle: {
-      width: 2
-    },
-    areaStyle: {
-      opacity: 0.2    // Dezente Füllung unter der Linie
-    },
-    data: sValue.map((val, i) => [sTime[i], val])
-  };
-});
+
+
+const series = data.series[0];
+if (!series) return {};
+
+const timeField = series.fields.find((f) => f.type === 'time').values;
+const valueField = series.fields.find((f) => f.name === 'difference').values;
+
+const hours = ['12a', '1a', '2a', '3a', '4a', '5a', '6a', '7a', '8a', '9a', '10a', '11a', '12p', '1p', '2p', '3p', '4p', '5p', '6p', '7p', '8p', '9p', '10p', '11p'];
+const days = ['Sonntag', 'Samstag', 'Freitag', 'Donnerstag', 'Mittwoch', 'Dienstag', 'Montag'];
+
+// Daten in [Stunde, Tag, Wert] Format bringen
+const heatmapData = [];
+for (let i = 0; i < timeField.length; i++) {
+  const date = new Date(timeField[i]);
+  const hour = date.getHours();
+  // day: 0=So, 1=Mo... wir drehen es für die Anzeige um
+  const day = date.getDay(); 
+  const displayDay = 6 - ((day + 6) % 7); // Korrektur damit Montag unten ist (oder oben je nach Wunsch)
+  
+  heatmapData.push([hour, displayDay, valueField[i] || 0]);
+}
 
 return {
-  tooltip: {
-    trigger: 'axis',
-    confine: true
+  tooltip: { position: 'top' },
+  grid: { height: '70%', top: '10%' },
+  xAxis: { type: 'category', data: hours, splitArea: { show: true } },
+  yAxis: { type: 'category', data: days, splitArea: { show: true } },
+  visualMap: {
+    min: 0,
+    max: 5, // Hier anpassen: Was ist ein hoher Stundenverbrauch?
+    calculable: true,
+    orient: 'horizontal',
+    left: 'center',
+    bottom: '5%',
+    inRange: { color: ['#313695', '#4575b4', '#abd9e9', '#ffffbf', '#fee090', '#f46d43', '#d73027', '#a50026'] }
   },
-  legend: {
-    show: true,
-    bottom: 0
+  series: [{
+    name: 'Gasverbrauch',
+    type: 'heatmap',
+    data: heatmapData,
+    label: { show: false },
+    emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0, 0, 0, 0.5)' } }
+  }]
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
   },
-  grid: {
-    left: '3%',
-    right: '4%',
-    bottom: '10%',
-    containLabel: true
-  },
-  xAxis: {
-    type: 'time',
-    boundaryGap: false
-  },
-  yAxis: {
-    type: 'value',
-    splitLine: {
-      show: true,
-      lineStyle: {
-        type: 'dashed'
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Aktueller Gasverbrauch (Heute)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "query": "SELECT DIFFERENCE(LAST(\"value\")) FROM \"home_assistant\".\"autogen\".\"m³\" WHERE \"entity_id\" = 's02_verbrauch_zahlerstand_m3' AND time > now() - 1d",
+          "rawQuery": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 50 }]
+          },
+          "unit": "m3"
+        }
+      },
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto" }
+    },
+    {
+      "title": "Gasverbrauch Heatmap (Stunde/Tag)",
+      "type": "volkovlabs-echarts-panel",
+      "gridPos": { "h": 10, "w": 18, "x": 6, "y": 0 },
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "targets": [
+        {
+          "query": "SELECT DIFFERENCE(LAST(\"value\")) AS \"difference\" FROM \"home_assistant\".\"autogen\".\"m³\" WHERE $timeFilter AND \"entity_id\" = 's02_verbrauch_zahlerstand_m3' GROUP BY time(1h) FILL(0)",
+          "rawQuery": true,
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "code": "const series = data.series[0];\nif (!series) return {};\nconst timeField = series.fields.find((f) => f.type === 'time').values;\nconst valueField = series.fields.find((f) => f.name === 'difference').values;\nconst hours = ['12a', '1a', '2a', '3a', '4a', '5a', '6a', '7a', '8a', '9a', '10a', '11a', '12p', '1p', '2p', '3p', '4p', '5p', '6p', '7p', '8p', '9p', '10p', '11p'];\nconst days = ['So', 'Sa', 'Fr', 'Do', 'Mi', 'Di', 'Mo'];\nconst heatmapData = [];\nfor (let i = 0; i < timeField.length; i++) {\n  const date = new Date(timeField[i]);\n  const hour = date.getHours();\n  const day = date.getDay();\n  const displayDay = 6 - ((day + 6) % 7);\n  heatmapData.push([hour, displayDay, Math.round(valueField[i] * 100) / 100]);\n}\nreturn {\n  tooltip: { position: 'top' },\n  xAxis: { type: 'category', data: hours },\n  yAxis: { type: 'category', data: days },\n  visualMap: { min: 0, max: 2, calculable: true, orient: 'vertical', right: '0%', top: 'center', inRange: { color: ['#313695', '#abd9e9', '#ffffbf', '#f46d43', '#a50026'] } },\n  series: [{ name: 'Gas', type: 'heatmap', data: heatmapData, label: { show: true } }]\n};"
+      }
+    },
+    {
+      "title": "Stromverbrauch Analyse (Viertelstündlich)",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 14 },
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "targets": [
+        {
+          "query": "SELECT NON_NEGATIVE_DIFFERENCE(LAST(\"value\")) AS \"Gesamt\" FROM \"home_assistant\".\"autogen\".\"kWh\" WHERE $timeFilter AND \"entity_id\"='hauptzahler_verbrauch_kwh' GROUP BY time(15m) fill(0)",
+          "refId": "A"
+        },
+        {
+          "query": "SELECT DIFFERENCE(LAST(\"value\")) AS \"Heizung\" FROM \"home_assistant\".\"autogen\".\"kWh\" WHERE $timeFilter AND \"entity_id\" = 'heizung_verbrauch_kwh' GROUP BY time(15m) FILL(0)",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "kwatth", "custom": { "stacking": { "mode": "normal" } } }
       }
     }
-  },
-  series: series
-};
+  ],
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["Energie", "Halle"],
+  "templating": { "list": [] },
+  "time": { "from": "now-7d", "to": "now" },
+  "title": "Hallen-Energie-Master",
+  "uid": "energy_master_01"
+}
