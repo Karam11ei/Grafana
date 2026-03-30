@@ -2,11 +2,25 @@
 const series = context.panel.data.series;
 if (!series || series.length < 2) return {};
 
-// 1. Außentemperatur (X-Achse) finden - wir suchen nach deinem Alias "Umgebung"
-const outdoorSeries = series.find(s => s.name === 'Umgebung' || s.refId === 'I');
+
+// 1. Außentemperatur (X-Achse) finden
+// Wir suchen nach 'Umgebung' im Namen ODER nach der Query-ID 'I'
+const outdoorSeries = series.find(s => 
+  s.name === 'Umgebung' || 
+  s.refId === 'I' || 
+  (s.fields && s.fields.some(f => f.name === 'Umgebung'))
+);
 
 if (!outdoorSeries) {
-  return { title: { text: "Fehler: Query 'Umgebung' nicht gefunden", left: 'center' } };
+  // Debug-Anzeige: Was sieht das Skript eigentlich?
+  const availableNames = series.map(s => s.name).join(', ');
+  return { 
+    title: { 
+      text: `Fehler: 'Umgebung' nicht gefunden. Verfügbar: ${availableNames}`, 
+      left: 'center',
+      textStyle: { fontSize: 12, color: 'red' }
+    } 
+  };
 }
 
 // X-Werte extrahieren
