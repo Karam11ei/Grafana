@@ -1,0 +1,41 @@
+const series = context.panel.data.series;
+if (series.length < 2) return {};
+
+// 1. Außentemperatur (X-Werte) finden
+const outdoorSeries = series.find(s => s.name.includes('outdoor_temp'));
+const xValues = outdoorSeries.fields.find(f => f.type === 'number' || f.name === 'outdoor_temp').values;
+
+// 2. Alle anderen Temperaturen (Y-Werte) mappen
+const plotData = series
+  .filter(s => s !== outdoorSeries)
+  .map(s => {
+    const yValues = s.fields.find(f => f.type === 'number').values;
+    // Erstelle Paare [Außentemperatur, Vor/Rücklauf-Temperatur]
+    const pairs = xValues.map((x, i) => [x, yValues[i]]).filter(p => p[0] !== null && p[1] !== null);
+    
+    return {
+      name: s.name,
+      type: 'scatter',
+      symbolSize: 6,
+      data: pairs,
+      opacity: 0.6
+    };
+  });
+
+return {
+  title: { text: 'Heizkurven-Analyse (Korrelation)', left: 'center' },
+  tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+  legend: { bottom: 0 },
+  xAxis: { 
+    name: 'Außentemperatur [°C]', 
+    type: 'value', 
+    scale: true,
+    splitLine: { show: true } 
+  },
+  yAxis: { 
+    name: 'Vor-/Rücklauf [°C]', 
+    type: 'value', 
+    scale: true 
+  },
+  series: plotData
+};
