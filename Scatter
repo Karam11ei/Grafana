@@ -1,39 +1,61 @@
+// Daten sicher aus dem Context laden
 const series = context.panel.data.series;
-if (series.length < 2) return {};
+if (!series || series.length < 2) return {};
 
-// 1. Außentemperatur (X-Werte) finden
-const outdoorSeries = series.find(s => s.name.includes('outdoor_temp'));
-const xValues = outdoorSeries.fields.find(f => f.type === 'number' || f.name === 'outdoor_temp').values;
+// 1. Außentemperatur (X-Achse) finden - wir suchen nach deinem Alias "Umgebung"
+const outdoorSeries = series.find(s => s.name === 'Umgebung' || s.refId === 'I');
+
+if (!outdoorSeries) {
+  return { title: { text: "Fehler: Query 'Umgebung' nicht gefunden", left: 'center' } };
+}
+
+// X-Werte extrahieren
+const xField = outdoorSeries.fields.find(f => f.type === 'number');
+const xValues = xField ? xField.values : [];
 
 // 2. Alle anderen Temperaturen (Y-Werte) mappen
 const plotData = series
-  .filter(s => s !== outdoorSeries)
+  .filter(s => s !== outdoorSeries) // Alles außer der Umgebungstemperatur
   .map(s => {
-    const yValues = s.fields.find(f => f.type === 'number').values;
-    // Erstelle Paare [Außentemperatur, Vor/Rücklauf-Temperatur]
-    const pairs = xValues.map((x, i) => [x, yValues[i]]).filter(p => p[0] !== null && p[1] !== null);
+    const yField = s.fields.find(f => f.type === 'number');
+    if (!yField) return null;
+    const yValues = yField.values;
+
+    // Paare bilden [X, Y] -> [Umgebung, Vorlauf/Rücklauf]
+    const pairs = [];
+    for (let i = 0; i < xValues.length; i++) {
+        if (xValues[i] !== null && yValues[i] !== null) {
+            pairs.push([xValues[i], yValues[i]]);
+        }
+    }
     
     return {
       name: s.name,
       type: 'scatter',
       symbolSize: 6,
       data: pairs,
-      opacity: 0.6
+      opacity: 0.7,
+      large: true
     };
-  });
+  }).filter(s => s !== null);
 
 return {
-  title: { text: 'Heizkurven-Analyse (Korrelation)', left: 'center' },
-  tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
-  legend: { bottom: 0 },
+  title: { text: 'Heizkurve: Vor-/Rücklauf über Außentemperatur', left: 'center', textStyle: { color: '#ccc' } },
+  tooltip: { 
+    trigger: 'item',
+    formatter: (params) => `${params.seriesName}<br/>Außen: ${params.value[0]}°C<br/>System: ${params.value[1]}°C`
+  },
+  legend: { bottom: '5%', textStyle: { color: '#ccc' } },
+  grid: { top: '15%', bottom: '20%', left: '10%', right: '10%' },
   xAxis: { 
     name: 'Außentemperatur [°C]', 
     type: 'value', 
     scale: true,
-    splitLine: { show: true } 
+    nameLocation: 'middle',
+    nameGap: 30
   },
   yAxis: { 
-    name: 'Vor-/Rücklauf [°C]', 
+    name: 'Systemtemperatur [°C]', 
     type: 'value', 
     scale: true 
   },
