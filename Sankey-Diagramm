@@ -1,0 +1,53 @@
+const series = context.panel.data.series;
+if (!series || series.length === 0) return {};
+
+// Wir holen uns die aktuellsten Werte (Last)
+function getValue(alias) {
+  const s = series.find(s => s.name === alias);
+  if (!s) return 0;
+  const vals = s.fields.find(f => f.type === 'number').values;
+  return vals[vals.length - 1] || 0;
+}
+
+// Werte abrufen (Aliase müssen in den Queries gesetzt sein!)
+const pv = getValue('PV_Leistung');
+const evu = getValue('EVU_Bezug');
+const halle = getValue('Halle_Gesamt');
+const bauhof = getValue('Bauhof_Gesamt');
+const luefter = getValue('Luefter_Leistung');
+const heizung = getValue('Heizung_Leistung');
+
+return {
+  tooltip: { trigger: 'item', triggerOn: 'mousemove' },
+  series: [
+    {
+      type: 'sankey',
+      layout: 'none',
+      emphasis: { focus: 'adjacency' },
+      data: [
+        { name: 'PV Anlage', itemStyle: { color: '#fbc357' } },
+        { name: 'Netz (EVU)', itemStyle: { color: '#ce5c5c' } },
+        { name: 'Verteilung', itemStyle: { color: '#51689b' } },
+        { name: 'Halle' },
+        { name: 'Bauhof' },
+        { name: 'Heißwasser' },
+        { name: 'Lüfter' },
+        { name: 'Heizung' }
+      ],
+      links: [
+        // Von Quellen zur Verteilung
+        { source: 'PV Anlage', target: 'Verteilung', value: pv },
+        { source: 'Netz (EVU)', target: 'Verteilung', value: evu },
+        
+        // Von Verteilung zu den Bereichen
+        { source: 'Verteilung', target: 'Halle', value: halle },
+        { source: 'Verteilung', target: 'Bauhof', value: bauhof },
+        
+        // Detailverteilung (Beispiel für Unterverbraucher in der Halle)
+        { source: 'Halle', target: 'Lüfter', value: luefter },
+        { source: 'Halle', target: 'Heizung', value: heizung }
+      ],
+      lineStyle: { color: 'gradient', curveness: 0.5 }
+    }
+  ]
+};
