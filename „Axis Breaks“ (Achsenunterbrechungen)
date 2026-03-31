@@ -1,41 +1,37 @@
-// 1. Definition der Achsenunterbrechungen (Axis Breaks)
-// Hier definierst du, welcher Bereich "übersprungen" werden soll
+// Volkov Labs nutzt 'context' statt 'data' direkt im Scope
+const data = context.panel.data;
+
+if (!data || !data.series || data.series.length === 0) {
+  return {}; // Beendet die Ausführung, wenn noch keine Daten da sind
+}
+
+// 1. Achsenunterbrechungen definieren
 var _currentAxisBreaks = [
-  {
-    start: 500,    // Beispiel: Unterbricht zwischen 500Wh und 5kWh
-    end: 5000,
-    gap: '2%'
-  },
-  {
-    start: 10000,  // Beispiel: Unterbricht zwischen 10kWh und 100kWh
-    end: 100000,
-    gap: '2%'
-  }
+  { start: 500, end: 5000, gap: '2%' },
+  { start: 10000, end: 100000, gap: '2%' }
 ];
 
-// 2. Mapping der Grafana-Daten
-// Grafana übergibt die Daten im 'data' Objekt
+// 2. Daten aus Grafana-Series extrahieren
 const series = data.series.map(s => {
+  const valueField = s.fields.find(f => f.type === 'number');
   return {
-    name: s.name,
+    name: s.name || s.refId,
     type: 'bar',
-    stack: 'total', // Optional: 'total' für gestapelte Balken
+    stack: 'total', 
     emphasis: { focus: 'series' },
-    // Extrahiert die Werte aus der InfluxDB Abfrage
-    data: s.fields.find(f => f.type === 'number').values.buffer
+    data: valueField ? valueField.values : []
   };
 });
 
-// Zeitachse (X-Achse) aus dem ersten Datensatz extrahieren
-const timeValues = data.series[0].fields.find(f => f.type === 'time').values.buffer;
-const formattedTime = timeValues.map(t => dayjs(t).format('DD.MM HH:mm'));
+// Zeitachse (X-Achse) extrahieren
+const timeField = data.series[0].fields.find(f => f.type === 'time');
+const formattedTime = timeField 
+  ? timeField.values.map(t => new Date(t).toLocaleString()) 
+  : [];
 
+// 3. Finale Option zurückgeben
 return {
-  title: {
-    text: 'Energieverbrauch mit Axis Breaks',
-    left: 'center',
-    textStyle: { color: '#ccc' }
-  },
+  backgroundColor: 'transparent',
   tooltip: {
     trigger: 'axis',
     axisPointer: { type: 'shadow' }
@@ -45,10 +41,11 @@ return {
     textStyle: { color: '#ccc' }
   },
   grid: {
-    top: 60,
-    bottom: 80,
-    left: '10%',
-    right: '5%'
+    top: '10%',
+    bottom: '15%',
+    left: '5%',
+    right: '5%',
+    containLabel: true
   },
   xAxis: {
     type: 'category',
@@ -57,14 +54,12 @@ return {
   },
   yAxis: {
     type: 'value',
-    name: 'Wh / kWh',
     axisLabel: { color: '#ccc' },
-    // HIER werden die Breaks angewendet
     breaks: _currentAxisBreaks,
     breakArea: {
       itemStyle: {
-        opacity: 0.3,
-        color: '#ff0000' // Visualisierung des Schnitts
+        opacity: 0.2,
+        color: '#ff0000'
       }
     }
   },
