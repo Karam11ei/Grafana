@@ -1,33 +1,69 @@
-const payload = {};
-
-// 1. Hole alle Formularfelder (wie die E-Mail Adresse)
-context.panel.elements.forEach((element) => {
-  if (element.value !== undefined) {
-    payload[element.id] = element.value;
-  }
-});
-
-// 2. Suche die Energie-Werte in den Queries
-if (context.data && context.data.length > 0) {
-  context.data.forEach((series, index) => {
-    // Wir suchen in jeder Query den letzten berechneten Wert
-    try {
-      const field = series.series[0].fields.find(f => f.name === 'Value' || f.type === 'number');
-      const val = field.state.calcs.last;
-      
-      // Wir ordnen die Werte anhand des Index zu (0=A, 1=B, 2=C...)
-      if (index === 0) payload.strom_evu = val;
-      if (index === 1) payload.pv_erzeugung = val;
-      if (index === 2) payload.gas_verbrauch = val;
-      if (index === 3) payload.gesamt_verbrauch = val;
-    } catch (e) {
-      payload["error_query_" + index] = "Konnte Wert nicht lesen";
+{
+  "type": "timeseries",
+  "title": "Energie- & Verlaufsübersicht (Alle Sensoren)",
+  "gridPos": {
+    "h": 12,
+    "w": 24,
+    "x": 0,
+    "y": 0
+  },
+  "targets": [
+    {
+      "datasource": {
+        "type": "influxdb"
+      },
+      "query": "from(bucket: \"home_assistant\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"W\" or r[\"_measurement\"] == \"kW\" or r[\"_measurement\"] == \"kWh\" or r[\"_measurement\"] == \"m³\")\n  |> filter(fn: (r) => \n    r[\"entity_id\"] == \"hauptzahler_leistung_einspeisung\" or\n    r[\"entity_id\"] == \"hauptzahler_verbrauch_kwh\" or\n    r[\"entity_id\"] == \"hauptzahler_leistung_kw\" or\n    r[\"entity_id\"] == \"s02_einspeisung_verbrauch_kwh_2\" or\n    r[\"entity_id\"] == \"tr_erzeugte_wirkenergiek_wh\" or\n    r[\"entity_id\"] == \"pr1_verbrauch_wirkenergie_kwh\" or\n    r[\"entity_id\"] == \"s02_einspeisung_leistung_w\" or\n    r[\"entity_id\"] == \"wirkleistung\" or\n    r[\"entity_id\"] == \"tr_verbrauch_wirkenergiek_wh\" or\n    r[\"entity_id\"] == \"heizung_w\" or\n    r[\"entity_id\"] == \"heizung_verbrauch_kwh\" or\n    r[\"entity_id\"] == \"heizung_leistung_kw\" or\n    r[\"entity_id\"] == \"m_bus_1_energie_kwh\" or\n    r[\"entity_id\"] == \"m_bus_2_energie_kwh\" or\n    r[\"entity_id\"] == \"m_bus_3_energie_kwh\" or\n    r[\"entity_id\"] == \"s01_verbrauch_zahlerstand_m3\"\n  )\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n  |> yield(name: \"last\")",
+      "refId": "A"
     }
-  });
+  ],
+  "fieldConfig": {
+    "defaults": {
+      "custom": {
+        "drawStyle": "line",
+        "lineInterpolation": "linear",
+        "barAlignment": 0,
+        "lineWidth": 2,
+        "fillOpacity": 10,
+        "gradientMode": "opacity",
+        "spanNulls": false,
+        "showPoints": "auto"
+      },
+      "color": {
+        "mode": "palette-classic"
+      },
+      "mappings": [],
+      "thresholds": {
+        "mode": "absolute",
+        "steps": [
+          { "color": "green", "value": null }
+        ]
+      }
+    },
+    "overrides": [
+      {
+        "matcher": { "id": "byRegexp", "options": "/.*leistung.*/" },
+        "properties": [
+          { "id": "unit", "value": "watt" }
+        ]
+      },
+      {
+        "matcher": { "id": "byRegexp", "options": "/.*kwh.*/" },
+        "properties": [
+          { "id": "unit", "value": "kwh" },
+          { "id": "custom.axisPlacement", "value": "right" }
+        ]
+      }
+    ]
+  },
+  "options": {
+    "tooltip": {
+      "mode": "multi",
+      "sort": "desc"
+    },
+    "legend": {
+      "displayMode": "table",
+      "placement": "bottom",
+      "calcs": ["last", "mean", "max"]
+    }
+  }
 }
-
-// 3. Zeitraum mitschicken (für den Briefkopf der Rechnung)
-payload.datum_von = context.grafana.timeRange.from;
-payload.datum_bis = context.grafana.timeRange.to;
-
-return payload;
