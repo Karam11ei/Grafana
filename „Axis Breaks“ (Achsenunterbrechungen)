@@ -1,0 +1,72 @@
+// 1. Definition der Achsenunterbrechungen (Axis Breaks)
+// Hier definierst du, welcher Bereich "übersprungen" werden soll
+var _currentAxisBreaks = [
+  {
+    start: 500,    // Beispiel: Unterbricht zwischen 500Wh und 5kWh
+    end: 5000,
+    gap: '2%'
+  },
+  {
+    start: 10000,  // Beispiel: Unterbricht zwischen 10kWh und 100kWh
+    end: 100000,
+    gap: '2%'
+  }
+];
+
+// 2. Mapping der Grafana-Daten
+// Grafana übergibt die Daten im 'data' Objekt
+const series = data.series.map(s => {
+  return {
+    name: s.name,
+    type: 'bar',
+    stack: 'total', // Optional: 'total' für gestapelte Balken
+    emphasis: { focus: 'series' },
+    // Extrahiert die Werte aus der InfluxDB Abfrage
+    data: s.fields.find(f => f.type === 'number').values.buffer
+  };
+});
+
+// Zeitachse (X-Achse) aus dem ersten Datensatz extrahieren
+const timeValues = data.series[0].fields.find(f => f.type === 'time').values.buffer;
+const formattedTime = timeValues.map(t => dayjs(t).format('DD.MM HH:mm'));
+
+return {
+  title: {
+    text: 'Energieverbrauch mit Axis Breaks',
+    left: 'center',
+    textStyle: { color: '#ccc' }
+  },
+  tooltip: {
+    trigger: 'axis',
+    axisPointer: { type: 'shadow' }
+  },
+  legend: {
+    bottom: '0',
+    textStyle: { color: '#ccc' }
+  },
+  grid: {
+    top: 60,
+    bottom: 80,
+    left: '10%',
+    right: '5%'
+  },
+  xAxis: {
+    type: 'category',
+    data: formattedTime,
+    axisLabel: { color: '#ccc' }
+  },
+  yAxis: {
+    type: 'value',
+    name: 'Wh / kWh',
+    axisLabel: { color: '#ccc' },
+    // HIER werden die Breaks angewendet
+    breaks: _currentAxisBreaks,
+    breakArea: {
+      itemStyle: {
+        opacity: 0.3,
+        color: '#ff0000' // Visualisierung des Schnitts
+      }
+    }
+  },
+  series: series
+};
