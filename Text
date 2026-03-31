@@ -1,69 +1,68 @@
-{
-  "type": "timeseries",
-  "title": "Energie- & Verlaufsübersicht (Alle Sensoren)",
-  "gridPos": {
-    "h": 12,
-    "w": 24,
-    "x": 0,
-    "y": 0
-  },
-  "targets": [
-    {
-      "datasource": {
-        "type": "influxdb"
-      },
-      "query": "from(bucket: \"home_assistant\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"W\" or r[\"_measurement\"] == \"kW\" or r[\"_measurement\"] == \"kWh\" or r[\"_measurement\"] == \"m³\")\n  |> filter(fn: (r) => \n    r[\"entity_id\"] == \"hauptzahler_leistung_einspeisung\" or\n    r[\"entity_id\"] == \"hauptzahler_verbrauch_kwh\" or\n    r[\"entity_id\"] == \"hauptzahler_leistung_kw\" or\n    r[\"entity_id\"] == \"s02_einspeisung_verbrauch_kwh_2\" or\n    r[\"entity_id\"] == \"tr_erzeugte_wirkenergiek_wh\" or\n    r[\"entity_id\"] == \"pr1_verbrauch_wirkenergie_kwh\" or\n    r[\"entity_id\"] == \"s02_einspeisung_leistung_w\" or\n    r[\"entity_id\"] == \"wirkleistung\" or\n    r[\"entity_id\"] == \"tr_verbrauch_wirkenergiek_wh\" or\n    r[\"entity_id\"] == \"heizung_w\" or\n    r[\"entity_id\"] == \"heizung_verbrauch_kwh\" or\n    r[\"entity_id\"] == \"heizung_leistung_kw\" or\n    r[\"entity_id\"] == \"m_bus_1_energie_kwh\" or\n    r[\"entity_id\"] == \"m_bus_2_energie_kwh\" or\n    r[\"entity_id\"] == \"m_bus_3_energie_kwh\" or\n    r[\"entity_id\"] == \"s01_verbrauch_zahlerstand_m3\"\n  )\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n  |> yield(name: \"last\")",
-      "refId": "A"
-    }
-  ],
-  "fieldConfig": {
-    "defaults": {
-      "custom": {
-        "drawStyle": "line",
-        "lineInterpolation": "linear",
-        "barAlignment": 0,
-        "lineWidth": 2,
-        "fillOpacity": 10,
-        "gradientMode": "opacity",
-        "spanNulls": false,
-        "showPoints": "auto"
-      },
-      "color": {
-        "mode": "palette-classic"
-      },
-      "mappings": [],
-      "thresholds": {
-        "mode": "absolute",
-        "steps": [
-          { "color": "green", "value": null }
-        ]
-      }
-    },
-    "overrides": [
-      {
-        "matcher": { "id": "byRegexp", "options": "/.*leistung.*/" },
-        "properties": [
-          { "id": "unit", "value": "watt" }
-        ]
-      },
-      {
-        "matcher": { "id": "byRegexp", "options": "/.*kwh.*/" },
-        "properties": [
-          { "id": "unit", "value": "kwh" },
-          { "id": "custom.axisPlacement", "value": "right" }
-        ]
-      }
-    ]
-  },
-  "options": {
-    "tooltip": {
-      "mode": "multi",
-      "sort": "desc"
-    },
-    "legend": {
-      "displayMode": "table",
-      "placement": "bottom",
-      "calcs": ["last", "mean", "max"]
-    }
-  }
-}
+Da du die Daten in Grafana visualisieren möchtest, hängen die Queries stark davon ab, ob du **InfluxQL** (das klassische SQL-ähnliche Format) oder **Flux** (das neuere Format für InfluxDB 2.x) verwendest.
+
+Hier sind die passenden Queries für beide Welten, basierend auf den Entitäten aus deinen Screenshots:
+
+### 1. InfluxQL (Klassisch / v1.8)
+In Grafana wählst du deine Data Source und schaltest auf den "Text Edit Mode" (das Stiftsymbol) um.
+
+**Für Momentanwerte (Leistung in W/kW):**
+```sql
+SELECT mean("value") FROM "W" WHERE ("entity_id" = 'hauptzahler_leistung_einspeisung') AND $timeFilter GROUP BY time($__interval) fill(null)
+```
+*(Wiederhole dies für `hauptzahler_leistung_kw`, `heizung_w`, `heizung_leistung_kw`, `s02_einspeisung_leistung_w` und `wirkleistung`.)*
+
+**Für Verbrauchsdaten (Zählerstände in kWh/m³):**
+Um den tatsächlichen Verbrauch (z.B. pro Stunde) aus den ständig steigenden Zählerständen zu berechnen:
+```sql
+SELECT non_negative_difference(last("value")) FROM "kWh" WHERE ("entity_id" = 'hauptzahler_verbrauch_kwh') AND $timeFilter GROUP BY time(1h) fill(null)
+```
+*(Wiederhole dies für `s02_einspeisung_verbrauch_kwh_2`, `heizung_verbrauch_kwh`, `tr_verbrauch_wirkenergiek_wh` und `s01_verbrauch_zahlerstand_m3`.)*
+
+---
+
+### 2. Flux (Modern / v2.x)
+Wenn du InfluxDB 2.0+ nutzt, sehen die Queries so aus. Du kannst diese direkt in das Query-Feld kopieren:
+
+**Momentanwerte (Leistung):**
+```fsharp
+from(bucket: "home_assistant")
+  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> filter(fn: (r) => r["_measurement"] == "W" or r["_measurement"] == "kW")
+  |> filter(fn: (r) => r["entity_id"] == "hauptzahler_leistung_einspeisung" or 
+                       r["entity_id"] == "hauptzahler_leistung_kw" or
+                       r["entity_id"] == "heizung_w" or
+                       r["entity_id"] == "wirkleistung")
+  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)
+  |> yield(name: "mean")
+```
+
+**Verbrauchsberechnung (Differenz der Zählerstände):**
+```fsharp
+from(bucket: "home_assistant")
+  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> filter(fn: (r) => r["_measurement"] == "kWh" or r["_measurement"] == "m³")
+  |> filter(fn: (r) => r["entity_id"] == "hauptzahler_verbrauch_kwh" or 
+                       r["entity_id"] == "m_bus_1_energie_kwh" or
+                       r["entity_id"] == "m_bus_2_energie_kwh" or
+                       r["entity_id"] == "m_bus_3_energie_kwh" or
+                       r["entity_id"] == "s01_verbrauch_zahlerstand_m3")
+  |> aggregateWindow(every: 1h, fn: last, createEmpty: false)
+  |> difference()
+  |> yield(name: "stündlicher_verbrauch")
+```
+
+---
+
+### Zusammenfassung der Feld-Zuordnung
+
+| Bereich | Messwert (Momentan) | Zählerstand (Verbrauch) |
+| :--- | :--- | :--- |
+| **Halle** | `hauptzahler_leistung_einspeisung`, `hauptzahler_leistung_kw` | `hauptzahler_verbrauch_kwh`, `s02_einspeisung_verbrauch_kwh_2` |
+| **Bauhof** | `wirkleistung`, `s02_einspeisung_leistung_w` | `tr_verbrauch_wirkenergiek_wh`, `tr_erzeugte_wirkenergiek_wh` |
+| **Heizung** | `heizung_w`, `heizung_leistung_kw` | `heizung_verbrauch_kwh` |
+| **Warmwasser** | - | `m_bus_1_energie_kwh`, `m_bus_2_energie_kwh`, `m_bus_3_energie_kwh` |
+| **Gas** | - | `s01_verbrauch_zahlerstand_m3` |
+
+**Wichtiger Hinweis:** Achte darauf, dass Home Assistant die Daten oft in unterschiedlichen "Measurements" speichert (z.B. `W`, `kW`, `kWh` oder `unit_of_measurement`). Wenn eine Query nichts liefert, prüfe im Data Explorer von Grafana, ob das Measurement korrekt benannt ist.
+
+Welches Dashboard-Layout schwebt dir vor – eher eine tabellarische Übersicht oder ein zeitlicher Verlaufsgraph?
