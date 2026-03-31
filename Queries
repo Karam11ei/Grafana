@@ -1,0 +1,84 @@
+[cite_start]Hier sind die präzisen InfluxDB-Queries für dein **Sankey-Diagramm**, basierend auf den von dir bereitgestellten Messstellenlisten[cite: 1, 2, 3].
+
+Damit das Diagramm korrekt berechnet wird, müssen wir alle Werte auf eine einheitliche Einheit bringen (hier **kW**). [cite_start]Da einige deiner Sensoren in **Watt (W)** und andere in **Kilowatt (kW)** liefern, habe ich die Umrechnung (Division durch 1000) direkt in die Queries eingebaut[cite: 1, 3].
+
+### 1. Die Energiequellen (Input - links)
+Diese Queries erfassen die Energie, die in das System hineinfließt.
+
+* **Netzbezug (EVU):**
+    ```sql
+    SELECT last("value") / 1000 AS "EVU_Bezug" 
+    FROM "W" 
+    WHERE $timeFilter AND "entity_id" = 'hauptzahler_leistung' 
+    GROUP BY time($__interval) fill(0)
+    ```
+    [cite_start]*Diese Query nutzt die Wirkleistung in Watt und wandelt sie in kW um[cite: 1, 3].*
+
+* **PV-Erzeugung:**
+    ```sql
+    SELECT last("value") / 1000 AS "PV_Leistung" 
+    FROM "W" 
+    WHERE $timeFilter AND "entity_id" = 'hauptzahler_leistung_einspeisung' 
+    GROUP BY time($__interval) fill(0)
+    ```
+    [cite_start]*Erfasst die aktuelle Einspeiseleistung der Photovoltaik[cite: 1, 3].*
+
+---
+
+### 2. Hauptverteilung (Knoten - mitte)
+Falls du die Gesamtverbräuche der Gebäude als Zwischenschritte anzeigen willst:
+
+* **Gesamtverbrauch Halle:**
+    ```sql
+    SELECT last("value") AS "Halle_Gesamt" 
+    FROM "kW" 
+    WHERE $timeFilter AND "entity_id" = 'hauptzahler_leistung_kw' 
+    GROUP BY time($__interval) fill(0)
+    ```
+    [cite_start]*Gibt die gesamte Wirkleistung am Hauptzähler der Halle an[cite: 1, 3].*
+
+---
+
+### 3. Endverbraucher (Output - rechts)
+Diese Queries zeigen, wohin die Energie innerhalb der Objekte fließt.
+
+* **Heizung (Halle):**
+    ```sql
+    SELECT last("value") AS "Heizung_Leistung" 
+    FROM "kW" 
+    WHERE $timeFilter AND "entity_id" = 'heizung_leistung_kw' 
+    GROUP BY time($__interval) fill(0)
+    ```
+    [cite_start]*Spezifische Leistungsaufnahme der Heizungsanlage[cite: 1, 3].*
+
+* **Lüfter (Halle - M-Bus 3):**
+    [cite_start]*Hinweis: Da für die M-Bus Teilnehmer primär Zählerstände (`kWh`) und Volumenströme gelistet sind[cite: 1, 2], berechnen wir die aktuelle Leistung aus dem Volumenstrom oder nutzen die Wirkleistung, falls diese für den M-Bus 3 (Lüfter) separat als kW-Punkt existiert.*
+    ```sql
+    SELECT last("value") AS "Luefter_Leistung" 
+    FROM "state" 
+    WHERE $timeFilter AND "entity_id" = 'm_bus_3_volumenstrom' 
+    GROUP BY time($__interval) fill(0)
+    ```
+    [cite_start]*Alternativ kann hier ein berechneter Wert aus der Energiedifferenz genutzt werden[cite: 1, 2].*
+
+---
+
+### Wichtige Hinweise für Grafana
+1.  **Format as Table:** Stelle bei allen Queries unten links den Modus auf **"Table"**, damit das ECharts-Plugin die Daten korrekt als Paare zuordnen kann.
+2.  **Alias by:** Verwende exakt die Namen (z. B. `PV_Leistung`), die du auch im JavaScript-Code deines Sankey-Diagramms als `source` oder `target` benutzt.
+3.  **Mathematische Konsistenz:** Ein Sankey-Diagramm ist ein Flussmodell. Die Summe der Quellen sollte idealerweise der Summe der Verbraucher entsprechen:
+    * [cite_start]$\text{PV} + \text{EVU} \approx \text{Heizung} + \text{Lüfter} + \text{Bauhof} + \text{Rest}$[cite: 1, 2].
+
+
+
+[Image of energy flow Sankey diagram]
+
+
+### [cite_start]Zusammenfassung der Datenpunkte[cite: 1, 3]:
+| Bereich | Funktion | Einheit | entity_id |
+| :--- | :--- | :--- | :--- |
+| Netz | Quelle | W / kW | `hauptzahler_leistung` |
+| PV | Quelle | W | `hauptzahler_leistung_einspeisung` |
+| Heizung | Ziel | kW | `heizung_leistung_kw` |
+| Halle | Ziel | kWh (Zähler) | `hauptzahler_verbrauch_kwh` |
+| Bauhof | Ziel | kWh (Zähler) | `bauhof_wirkenergiek_kwh` |
