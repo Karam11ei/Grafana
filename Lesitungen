@@ -1,0 +1,92 @@
+
+
+---
+
+### 1. Die Energiequellen (Input - Links)
+
+* **Netzbezug (EVU) – Messwert kW:**
+    ```sql
+    SELECT last("value") AS "EVU_Bezug" 
+    FROM "kW" 
+    WHERE $timeFilter AND "entity_id" = 'hauptzahler_leistung_kw' 
+    GROUP BY time($__interval) fill(0)
+    ```
+
+* **PV-Erzeugung (Wechselrichter) – Messwert W:**
+    ```sql
+    SELECT last("value") / 1000 AS "PV_Erzeugung" 
+    FROM "W" 
+    WHERE $timeFilter AND "entity_id" = 'hauptzahler_leistung_einspeisung' 
+    GROUP BY time($__interval) fill(0)
+    ```
+
+---
+
+### 2. Die Zwischenknoten & Hauptverbraucher
+
+* **Bauhof Gesamtleistung (Bezug/Last):**
+    ```sql
+    SELECT last("value") AS "Bauhof_Last" 
+    FROM "kW" 
+    WHERE $timeFilter AND "entity_id" = 'wirkleistung' 
+    GROUP BY time($__interval) fill(0)
+    ```
+
+* **Halle (Berechnet als Rest oder via Hauptzähler):**
+    *In deinem Schema ist die Halle der zentrale grüne Kasten. Wenn kein direkter kW-Sensor für die "Halle Gesamt" vorliegt, berechnet man diesen im Sankey-Code als Differenz.*
+
+---
+
+### 3. Die Detail-Verbraucher (Output - Rechts)
+
+* **Heizung (Strom) – Messwert kW:**
+    ```sql
+    SELECT last("value") AS "Heizung_Strom" 
+    FROM "kW" 
+    WHERE $timeFilter AND "entity_id" = 'heizung_leistung_kw' 
+    GROUP BY time($__interval) fill(0)
+    ```
+
+* **Warmwasser (Thermisches Äquivalent via M-Bus 1):**
+    *Da hier nur kWh vorliegen, berechnen wir die aktuelle Last (kW-Fluss) über 1 Stunde:*
+    ```sql
+    SELECT non_negative_derivative(last("value"), 1h) AS "WW_Last" 
+    FROM "kWh" 
+    WHERE $timeFilter AND "entity_id" = 'm_bus_1_energie_kwh' 
+    GROUP BY time($__interval) fill(0)
+    ```
+
+* **Lüftung (Thermisches Äquivalent via M-Bus 3):**
+    ```sql
+    SELECT non_negative_derivative(last("value"), 1h) AS "Lueftung_Last" 
+    FROM "kWh" 
+    WHERE $timeFilter AND "entity_id" = 'm_bus_3_energie_kwh' 
+    GROUP BY time($__interval) fill(0)
+    ```
+
+---
+
+### 4. Sankey-Struktur (Beispiel für den Code)
+
+Mit diesen Queries kannst du im **Business Charts (ECharts)** Panel folgende `links` definieren:
+
+```javascript
+links: [
+  // Stromfluss von den Quellen
+  { source: 'EVU_Bezug', target: 'Halle', value: evu },
+  { source: 'PV_Erzeugung', target: 'Bauhof', value: pv }, // PV speist am Bauhof ein
+  
+  // Verteilung von der Halle
+  { source: 'Halle', target: 'Bauhof', value: bauhof_bezug_von_halle }, 
+  { source: 'Halle', target: 'Heizung_Strom', value: heizung },
+  
+  // Thermische/Energie-Pfade
+  { source: 'Heizung_Strom', target: 'WW_Last', value: ww },
+  { source: 'Heizung_Strom', target: 'Lueftung_Last', value: lueftung }
+]
+```
+
+---
+
+
+**Soll ich dir beim Import der neuen Entitäten in dein bestehendes Dashboard helfen, um sicherzustellen, dass die Aliase (`Alias by`) perfekt mit dem Code übereinstimmen?**
