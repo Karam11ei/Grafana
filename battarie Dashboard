@@ -1,57 +1,64 @@
-// Sicherstellen, dass Daten da sind
-if (!data.series || data.series.length < 2) return { title: { text: "No Data" } };
+// Prüfen ob Daten da sind
+if (!data || !data.series || data.series.length < 2) {
+    return { title: { text: "Warte auf Daten...", left: 'center' } };
+}
 
-// --- METHODE AUS DEINEM BILD (Aktualisiert) ---
-const seriesA = data.series[0];
-const seriesB = data.series[1];
+// 1. Felder extrahieren
+const seriesA = data.series[0]; // Bezug
+const seriesB = data.series[1]; // Einspeisung
 
-// Wir nutzen direkt .values statt .values.buffer
-const time = seriesA.fields.find(f => f.type === 'time').values;
-const valA = seriesA.fields.find(f => f.type === 'number').values; // Zählerstand Bezug
-const valB = seriesB.fields.find(f => f.type === 'number').values; // Zählerstand Einspeisung
+const time = seriesA.fields.find(f => f.type === 'time')?.values;
+const valuesA = seriesA.fields.find(f => f.type === 'number')?.values; 
+const valuesB = seriesB.fields.find(f => f.type === 'number')?.values;
 
-const capacity = (context.replaceVariables('${batt_size}') || 5) * 1000; 
-let currentSoC = 0;
+if (!time || !valuesA || !valuesB) return { title: { text: "Feld-Fehler" } };
+
+// 2. Variablen für Simulation
+const capacity = (context.replaceVariables('${batt_size}') || 5) * 1; // Kapazität in kWh
+let currentSoC = 0; // Start bei 0 oder einem festen Wert
 
 const simBezug = [];
 const simEinspeisung = [];
 const socP = [];
 
-// Schleife startet bei 1, um die Differenz zum vorherigen Punkt (i-1) zu bilden
-for (let i = 1; i < time.length; i++) {
-    // Schritt 1: Realen Verbrauch/Überschuss aus Zählerstand berechnen
-    let deltaB = Math.max(0, valA[i] - valA[i-1]); 
-    let deltaE = Math.max(0, valB[i] - valB[i-1]);
+// 3. Simulation
+// Da non_negative_difference im Query ist, sind valuesA[i] bereits die Differenzwerte!
+for (let i = 0; i < time.length; i++) {
+    let deltaB = valuesA[i] || 0; // Was wir aus dem Netz ziehen müssten
+    let deltaE = valuesB[i] || 0; // Was wir einspeisen würden
 
-    // Schritt 2: Simulation (Logik Solaranlage-Ratgeber)
-    // Überschuss in Batterie laden
+    // A: Laden - Wenn Überschuss da ist
     if (deltaE > 0) {
         let charge = Math.min(deltaE, capacity - currentSoC);
         currentSoC += charge;
-        deltaE -= charge;
+        deltaE -= charge; // Rest der noch ins Netz geht
     }
 
-    // Nachtbedarf aus Batterie decken
+    // B: Entladen - Wenn Bedarf da ist
     if (deltaB > 0) {
         let discharge = Math.min(deltaB, currentSoC);
         currentSoC -= discharge;
-        deltaB -= discharge;
+        deltaB -= discharge; // Rest der noch vom Netz kommt
     }
 
-    simBezug.push([time[i], deltaB]);
-    simEinspeisung.push([time[i], deltaE]);
-    socP.push([time[i], (currentSoC / capacity) * 100]);
+    simBezug.push([time[i], deltaB.toFixed(3)]);
+    simEinspeisung.push([time[i], deltaE.toFixed(3)]);
+    socP.push([time[i], ((currentSoC / capacity) * 100).toFixed(1)]);
 }
 
-// --- VISUALISIERUNG ---
+// 4. ECharts Konfiguration
 return {
     tooltip: { trigger: 'axis' },
-    legend: { data: ['Rest-Bezug', 'Rest-Einspeisung', 'SoC %'] },
+    legend: { data: ['Netz-Bezug (sim)', 'Einspeisung (sim)', 'SoC %'] },
+    grid: { bottom: '10%' },
     xAxis: { type: 'time' },
-    yAxis: [{ type: 'value', name: 'kWh' }, { type: 'value', name: '%', max: 100 }],
+    yAxis: [
+        { type: 'value', name: 'kWh' },
+        { type: 'value', name: '%', max: 100, position: 'right' }
+    ],
     series: [
-        { name: 'Rest-Bezug', type: 'bar', stack: 'a', data: simBezug, color: 'red' },
-        { name: 'Rest-Einspeisung', type: 'bar', stack: 'a', data: simEinspeisung, color: 'green' },
-        { name: 'SoC %', type: 'line', yAxisIndex: 1, data: socP, color: 'yellow' }
+        { name: 'Netz-Bezug (sim)', type: 'bar', stack: 'total', data: simBezug, color: '#ef5350' },
+        { name: 'Einspeisung (sim)', type: 'bar', stack: 'total', data: simEinspeisung, color: '#66bb6a' },
+        { name: 'SoC %', type: 'line', yAxisIndex: 1, data: socP, color: '#ffee58', smooth: true, symbol: 'none' }
     ]
 };
