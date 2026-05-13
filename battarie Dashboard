@@ -1,65 +1,92 @@
-
-
-// Zugriff auf die Dashboard Variable
-// Sicherstellen, dass Daten vorhanden sind
+// --- DATEN-CHECK & INITIALISIERUNG ---
 if (!data.series || data.series.length < 2) {
-    return { title: { text: "Warte auf Daten von Query A und B..." } };
+    return { title: { text: "Warte auf Daten von Query A und B...", left: 'center' } };
 }
 
-// 1. Felder dynamisch finden (sicherer als feste Index-Zahlen)
-const fieldBezug = data.series[0].fields.find(f => f.name === 'value' || f.type === 'number');
-const fieldEinspeisung = data.series[1].fields.find(f => f.name === 'value' || f.type === 'number');
-const fieldTime = data.series[0].fields.find(f => f.type === 'time');
+// Felder finden (Zählerstände und Zeit)
+const seriesBezug = data.series.find(s => s.refId === 'A');
+const seriesEinspeisung = data.series.find(s => s.refId === 'B');
 
-if (!fieldBezug || !fieldEinspeisung || !fieldTime) {
-    return { title: { text: "Felder 'value' oder 'time' nicht gefunden" } };
+if (!seriesBezug || !seriesEinspeisung) {
+    return { title: { text: "Fehler: RefIDs 'A' (Bezug) und 'B' (Einspeisung) nicht gefunden.", left: 'center' } };
 }
 
-// 2. Werte in Variablen speichern
-const valsBezug = fieldBezug.values.buffer || fieldBezug.values;
-const valsEinspeisung = fieldEinspeisung.values.buffer || fieldEinspeisung.values;
-const time = fieldTime.values.buffer || fieldTime.values;
+const time = seriesBezug.fields.find(f => f.type === 'time').values;
+const rawBezug = seriesBezug.fields.find(f => f.type === 'number').values;
+const rawEinspeisung = seriesEinspeisung.fields.find(f => f.type === 'number').values;
 
+// Batterieparameter aus Grafana Variable holen
+const battCapacityKWh = parseFloat(context.replaceVariables('${batt_size}')) || 5;
+const capacityWh = battCapacityKWh * 1000; 
 
+// Variablen für die Simulation
+let currentSoC = 0; // Aktueller Ladestand in Wh
 const simBezug = [];
 const simEinspeisung = [];
-const simSoC = [];
+const socProzent = [];
+const labels = [];
 
-for (let i = 0; i < time.length; i++) {
-    let bezug = dataBezug[i];
-    let einspeisung = dataEinspeisung[i];
+// --- SIMULATIONS-SCHLEIFE ---
+for (let i = 1; i < time.length; i++) {
+    // 1. Delta berechnen (Zählerstand Differenz)
+    let deltaBezug = Math.max(0, rawBezug[i] - rawBezug[i-1]);
+    let deltaEinspeisung = Math.max(0, rawEinspeisung[i] - rawEinspeisung[i-1]);
 
-    // 1. Laden: Wenn eingespeist wird, lade die Batterie
-    if (einspeisung > 0) {
-        let ladeMenge = Math.min(einspeisung, capacity - currentSoC);
+    // 2. Batterie Laden (Priorität: Überschuss speichern)
+    if (deltaEinspeisung > 0) {
+        let ladeMenge = Math.min(deltaEinspeisung, capacityWh - currentSoC);
         currentSoC += ladeMenge;
-        einspeisung -= ladeMenge; // Rest-Einspeisung bleibt übrig
+        deltaEinspeisung -= ladeMenge; // Rest geht ins Netz
     }
 
-    // 2. Entladen: Wenn Strom bezogen wird, nutze erst die Batterie
-    if (bezug > 0) {
-        let entladeMenge = Math.min(bezug, currentSoC);
+    // 3. Batterie Entladen (Priorität: Eigenverbrauch decken)
+    if (deltaBezug > 0) {
+        let entladeMenge = Math.min(deltaBezug, currentSoC);
         currentSoC -= entladeMenge;
-        bezug -= entladeMenge; // Rest-Bezug bleibt übrig
+        deltaBezug -= entladeMenge; // Rest wird vom Netz bezogen
     }
 
-    simBezug.push(bezug);
-    simEinspeisung.push(einspeisung);
-    simSoC.push((currentSoC / capacity) * 100); // SoC in Prozent für den Graph
+    // Daten für Graphen speichern
+    simBezug.push(deltaBezug.toFixed(2));
+    simEinspeisung.push(deltaEinspeisung.toFixed(2));
+    socProzent.push(((currentSoC / capacityWh) * 100).toFixed(1));
+    labels.push(new Date(time[i]).toLocaleString());
 }
 
-// Rückgabe der ECharts Option
+// --- ECHARTS OPTIONEN ---
 return {
-  tooltip: { trigger: 'axis' },
-  legend: { data: ['Sim. Bezug', 'Sim. Einspeisung', 'Batterie SoC %'] },
-  xAxis: { type: 'category', data: time },
-  yAxis: [
-      { type: 'value', name: 'Watt' },
-      { type: 'value', name: '%', max: 100 }
-  ],
-  series: [
-    { name: 'Sim. Bezug', type: 'line', data: simBezug, areaStyle: {} },
-    { name: 'Sim. Einspeisung', type: 'line', data: simEinspeisung, areaStyle: {} },
-    { name: 'Batterie SoC %', type: 'line', yAxisIndex: 1, data: simSoC }
-  ]
+    title: { text: `Simulation: ${battCapacityKWh}kWh Speicher`, left: 'center' },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+    legend: { data: ['Simulierter Netzbezug', 'Simulierte Einspeisung', 'Batterie Ladestand (%)'], bottom: 0 },
+    grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+    xAxis: { type: 'category', data: labels },
+    yAxis: [
+        { type: 'value', name: 'Energie (kWh)', position: 'left' },
+        { type: 'value', name: 'Ladestand (%)', position: 'right', max: 100, min: 0 }
+    ],
+    series: [
+        {
+            name: 'Simulierter Netzbezug',
+            type: 'bar',
+            stack: 'total',
+            color: '#E02F44', // Rot
+            data: simBezug
+        },
+        {
+            name: 'Simulierte Einspeisung',
+            type: 'bar',
+            stack: 'total',
+            color: '#73BF69', // Grün
+            data: simEinspeisung
+        },
+        {
+            name: 'Batterie Ladestand (%)',
+            type: 'line',
+            yAxisIndex: 1,
+            color: '#FADE2A', // Gelb
+            symbol: 'none',
+            smooth: true,
+            data: socProzent
+        }
+    ]
 };
