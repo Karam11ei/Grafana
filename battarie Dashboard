@@ -1,0 +1,50 @@
+// Zugriff auf die Dashboard Variable
+const capacity = context.replaceVariables('${batt_size}') * 1000; // in Wh umrechnen
+let currentSoC = 0; // Aktueller Ladestand (State of Charge)
+
+const dataBezug = data.series[0].fields[1].values.buffer; // Reale Bezugsdaten
+const dataEinspeisung = data.series[1].fields[1].values.buffer; // Reale Einspeisedaten
+const time = data.series[0].fields[0].values.buffer;
+
+const simBezug = [];
+const simEinspeisung = [];
+const simSoC = [];
+
+for (let i = 0; i < time.length; i++) {
+    let bezug = dataBezug[i];
+    let einspeisung = dataEinspeisung[i];
+
+    // 1. Laden: Wenn eingespeist wird, lade die Batterie
+    if (einspeisung > 0) {
+        let ladeMenge = Math.min(einspeisung, capacity - currentSoC);
+        currentSoC += ladeMenge;
+        einspeisung -= ladeMenge; // Rest-Einspeisung bleibt übrig
+    }
+
+    // 2. Entladen: Wenn Strom bezogen wird, nutze erst die Batterie
+    if (bezug > 0) {
+        let entladeMenge = Math.min(bezug, currentSoC);
+        currentSoC -= entladeMenge;
+        bezug -= entladeMenge; // Rest-Bezug bleibt übrig
+    }
+
+    simBezug.push(bezug);
+    simEinspeisung.push(einspeisung);
+    simSoC.push((currentSoC / capacity) * 100); // SoC in Prozent für den Graph
+}
+
+// Rückgabe der ECharts Option
+return {
+  tooltip: { trigger: 'axis' },
+  legend: { data: ['Sim. Bezug', 'Sim. Einspeisung', 'Batterie SoC %'] },
+  xAxis: { type: 'category', data: time },
+  yAxis: [
+      { type: 'value', name: 'Watt' },
+      { type: 'value', name: '%', max: 100 }
+  ],
+  series: [
+    { name: 'Sim. Bezug', type: 'line', data: simBezug, areaStyle: {} },
+    { name: 'Sim. Einspeisung', type: 'line', data: simEinspeisung, areaStyle: {} },
+    { name: 'Batterie SoC %', type: 'line', yAxisIndex: 1, data: simSoC }
+  ]
+};
