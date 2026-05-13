@@ -1,10 +1,25 @@
-// Zugriff auf die Dashboard Variable
-const capacity = context.replaceVariables('${batt_size}') * 1000; // in Wh umrechnen
-let currentSoC = 0; // Aktueller Ladestand (State of Charge)
 
-const dataBezug = data.series[0].fields[1].values.buffer; // Reale Bezugsdaten
-const dataEinspeisung = data.series[1].fields[1].values.buffer; // Reale Einspeisedaten
-const time = data.series[0].fields[0].values.buffer;
+
+// Zugriff auf die Dashboard Variable
+// Sicherstellen, dass Daten vorhanden sind
+if (!data.series || data.series.length < 2) {
+    return { title: { text: "Warte auf Daten von Query A und B..." } };
+}
+
+// 1. Felder dynamisch finden (sicherer als feste Index-Zahlen)
+const fieldBezug = data.series[0].fields.find(f => f.name === 'value' || f.type === 'number');
+const fieldEinspeisung = data.series[1].fields.find(f => f.name === 'value' || f.type === 'number');
+const fieldTime = data.series[0].fields.find(f => f.type === 'time');
+
+if (!fieldBezug || !fieldEinspeisung || !fieldTime) {
+    return { title: { text: "Felder 'value' oder 'time' nicht gefunden" } };
+}
+
+// 2. Werte in Variablen speichern
+const valsBezug = fieldBezug.values.buffer || fieldBezug.values;
+const valsEinspeisung = fieldEinspeisung.values.buffer || fieldEinspeisung.values;
+const time = fieldTime.values.buffer || fieldTime.values;
+
 
 const simBezug = [];
 const simEinspeisung = [];
