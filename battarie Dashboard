@@ -1,64 +1,62 @@
-// Prüfen ob Daten da sind
-if (!data || !data.series || data.series.length < 2) {
-    return { title: { text: "Warte auf Daten...", left: 'center' } };
+// Struktur aus Screenshot 2026-05-13 145251.png übernehmen
+const series = context.panel.data.series; 
+if (!series || series.length < 2) return { title: { text: "Keine Daten" } };
+
+// Funktion zum sicheren Finden der Werte nach Alias (wie in deinem Screenshot)
+function getSeriesByAlias(alias) {
+    return series.find(s => s.name === alias || s.refId === alias);
 }
 
-// 1. Felder extrahieren
-const seriesA = data.series[0]; // Bezug
-const seriesB = data.series[1]; // Einspeisung
+// Wir suchen die Serien A und B (siehe Aliase in grafik.jpg)
+const sA = getSeriesByAlias('A'); // Bezug
+const sB = getSeriesByAlias('B'); // Einspeisung
 
-const time = seriesA.fields.find(f => f.type === 'time')?.values;
-const valuesA = seriesA.fields.find(f => f.type === 'number')?.values; 
-const valuesB = seriesB.fields.find(f => f.type === 'number')?.values;
+if (!sA || !sB) return { title: { text: "Aliase A oder B nicht gefunden" } };
 
-if (!time || !valuesA || !valuesB) return { title: { text: "Feld-Fehler" } };
+const time = sA.fields.find(f => f.type === 'time').values;
+const valA = sA.fields.find(f => f.type === 'number').values; 
+const valB = sB.fields.find(f => f.type === 'number').values;
 
-// 2. Variablen für Simulation
-const capacity = (context.replaceVariables('${batt_size}') || 5) * 1; // Kapazität in kWh
-let currentSoC = 0; // Start bei 0 oder einem festen Wert
+// Kapazität aus Variable oder Standard 5kWh
+const capacity = (context.replaceVariables('${batt_size}') || 5) * 1; 
+let currentSoC = 0;
 
 const simBezug = [];
 const simEinspeisung = [];
 const socP = [];
 
-// 3. Simulation
-// Da non_negative_difference im Query ist, sind valuesA[i] bereits die Differenzwerte!
+// Simulation (Da im SQL bereits "difference" steht, nutzen wir die Werte direkt)
 for (let i = 0; i < time.length; i++) {
-    let deltaB = valuesA[i] || 0; // Was wir aus dem Netz ziehen müssten
-    let deltaE = valuesB[i] || 0; // Was wir einspeisen würden
+    let deltaB = valA[i] || 0;
+    let deltaE = valB[i] || 0;
 
-    // A: Laden - Wenn Überschuss da ist
+    // Laden
     if (deltaE > 0) {
         let charge = Math.min(deltaE, capacity - currentSoC);
         currentSoC += charge;
-        deltaE -= charge; // Rest der noch ins Netz geht
+        deltaE -= charge;
     }
 
-    // B: Entladen - Wenn Bedarf da ist
+    // Entladen
     if (deltaB > 0) {
         let discharge = Math.min(deltaB, currentSoC);
         currentSoC -= discharge;
-        deltaB -= discharge; // Rest der noch vom Netz kommt
+        deltaB -= discharge;
     }
 
-    simBezug.push([time[i], deltaB.toFixed(3)]);
-    simEinspeisung.push([time[i], deltaE.toFixed(3)]);
-    socP.push([time[i], ((currentSoC / capacity) * 100).toFixed(1)]);
+    simBezug.push([time[i], deltaB]);
+    simEinspeisung.push([time[i], deltaE]);
+    socP.push([time[i], (currentSoC / capacity) * 100]);
 }
 
-// 4. ECharts Konfiguration
 return {
     tooltip: { trigger: 'axis' },
-    legend: { data: ['Netz-Bezug (sim)', 'Einspeisung (sim)', 'SoC %'] },
-    grid: { bottom: '10%' },
+    legend: { data: ['Rest-Bezug', 'Rest-Einspeisung', 'SoC %'] },
     xAxis: { type: 'time' },
-    yAxis: [
-        { type: 'value', name: 'kWh' },
-        { type: 'value', name: '%', max: 100, position: 'right' }
-    ],
+    yAxis: [{ type: 'value', name: 'kWh' }, { type: 'value', name: '%', max: 100, position: 'right' }],
     series: [
-        { name: 'Netz-Bezug (sim)', type: 'bar', stack: 'total', data: simBezug, color: '#ef5350' },
-        { name: 'Einspeisung (sim)', type: 'bar', stack: 'total', data: simEinspeisung, color: '#66bb6a' },
-        { name: 'SoC %', type: 'line', yAxisIndex: 1, data: socP, color: '#ffee58', smooth: true, symbol: 'none' }
+        { name: 'Rest-Bezug', type: 'bar', stack: 'a', data: simBezug, color: '#f44336' },
+        { name: 'Rest-Einspeisung', type: 'bar', stack: 'a', data: simEinspeisung, color: '#4caf50' },
+        { name: 'SoC %', type: 'line', yAxisIndex: 1, data: socP, color: '#ffeb3b', smooth: true }
     ]
 };
