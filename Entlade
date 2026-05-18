@@ -1,0 +1,75 @@
+const series = context.panel.data.series; 
+if (!series || series.length < 2) return { title: { text: "Keine Daten" } };
+
+function getSeriesByAlias(alias) {
+    return series.find(s => s.name === alias || s.refId === alias);
+}
+
+const sA = getSeriesByAlias('A'); // Bezug
+const sB = getSeriesByAlias('B'); // Einspeisung
+
+if (!sA || !sB) return { title: { text: "Aliase A oder B nicht gefunden" } };
+
+const time = sA.fields.find(f => f.type === 'time').values;
+const valA = sA.fields.find(f => f.type === 'number').values; 
+const valB = sB.fields.find(f => f.type === 'number').values;
+
+// Kapazität aus Variable (in kWh)
+const capacity = (context.replaceVariables('${batt_size}') || 5) * 1; 
+let currentSoC = 0;
+
+// Strompreis-Definition: 150€ / 1000 = 0.15€ pro kWh
+const stromPreisProKWh = 0.15; 
+let gespartEuro = 0;
+
+const simBezug = [];
+const simEinspeisung = [];
+const socP = [];
+
+for (let i = 0; i < time.length; i++) {
+    let deltaB = valA[i] || 0;
+    let deltaE = valB[i] || 0;
+
+    // 1. Laden (Überschuss in die Batterie)
+    if (deltaE > 0) {
+        let charge = Math.min(deltaE, capacity - currentSoC);
+        currentSoC += charge;
+        deltaE -= charge;
+    }
+
+    // 2. Entladen (Bedarf aus Batterie decken)
+    if (deltaB > 0) {
+        let discharge = Math.min(deltaB, currentSoC);
+        
+        // --- HIER PASSIERT DIE RECHNUNG ---
+        // Jede kWh, die wir aus der Batterie nehmen (discharge), 
+        // müssen wir nicht teuer einkaufen.
+        gespartEuro += discharge * stromPreisProKWh;
+        
+        currentSoC -= discharge;
+        deltaB -= discharge;
+    }
+
+    simBezug.push([time[i], deltaB]);
+    simEinspeisung.push([time[i], deltaE]);
+    socP.push([time[i], (currentSoC / capacity) * 100]);
+}
+
+return {
+    // Hier wird die Ersparnis im Titel angezeigt (auf 2 Nachkommastellen gerundet)
+    title: { 
+        text: `Simulierte Ersparnis: ${gespartEuro.toFixed(2)} €`,
+        left: 'center',
+        textStyle: { color: '#fff' }
+    },
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['Rest-Bezug', 'Rest-Einspeisung', 'SoC %'], top: '10%' },
+    grid: { top: '25%' },
+    xAxis: { type: 'time' },
+    yAxis: [{ type: 'value', name: 'kWh' }, { type: 'value', name: '%', max: 100, position: 'right' }],
+    series: [
+        { name: 'Rest-Bezug', type: 'bar', stack: 'a', data: simBezug, color: '#f44336' },
+        { name: 'Rest-Einspeisung', type: 'bar', stack: 'a', data: simEinspeisung, color: '#4caf50' },
+        { name: 'SoC %', type: 'line', yAxisIndex: 1, data: socP, color: '#ffeb3b', smooth: true }
+    ]
+};
