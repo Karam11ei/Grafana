@@ -1,0 +1,97 @@
+const series = context.panel.data.series; 
+if (!series || series.length < 3) return { title: { text: "Warte auf alle 3 Queries..." } };
+
+// Funktion zum sicheren Suchen nach deinem Alias aus den Queries
+function getSeriesByAlias(alias) {
+    return series.find(s => s.name === alias || s.refId === alias);
+}
+
+const sBezug = getSeriesByAlias('EVU Bezug');
+const sPV = getSeriesByAlias('Photovoltaik');
+const sEinspeisung = getSeriesByAlias('Einspeisung');
+
+if (!sBezug || !sPV || !sEinspeisung) {
+    return { title: { text: "Fehler: Aliase prüfen (EVU Bezug, Photovoltaik, Einspeisung)" } };
+}
+
+// Zeitachse extrahieren
+const time = sBezug.fields.find(f => f.type === 'time').values;
+
+const dataBezug = [];
+const dataPV = [];
+const dataEinspeisung = [];
+
+// Daten für ECharts aufbereiten
+for (let i = 0; i < time.length; i++) {
+    const t = time[i];
+    
+    // Werte holen (und fehlende Punkte abfangen)
+    const valBezug = sBezug.fields.find(f => f.type === 'number').values[i] || 0;
+    const valPV = sPV.fields.find(f => f.type === 'number').values[i] || 0;
+    const valEinspeisung = sEinspeisung.fields.find(f => f.type === 'number').values[i] || 0;
+
+    dataBezug.push([t, valBezug]);
+    dataPV.push([t, valPV]);
+    // Einspeisung negativ darstellen, damit sie optisch nach unten zeigt (Trennung Erzeugung vs. Netz-Interaktion)
+    dataEinspeisung.push([t, valEinspeisung]); 
+}
+
+return {
+    title: {
+        text: 'Energie-Übersicht',
+        left: 'center',
+        textStyle: { color: '#ccc' }
+    },
+    tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' } // Macht einen schicken Schatten hinter die Balken beim Drüberfahren
+    },
+    legend: {
+        data: ['Photovoltaik (Erzeugung)', 'EVU Bezug (Netz)', 'Einspeisung (Netz)'],
+        top: '10%',
+        textStyle: { color: '#ccc' }
+    },
+    grid: {
+        top: '22%',
+        left: '3%',
+        right: '4%',
+        bottom: '5%',
+        containLabel: true
+    },
+    xAxis: {
+        type: 'time',
+        axisLine: { lineStyle: { color: '#666' } }
+    },
+    yAxis: {
+        type: 'value',
+        name: 'kWh',
+        axisLine: { lineStyle: { color: '#666' } },
+        splitLine: { lineStyle: { color: '#333' } } // Dunkle Hilfslinien im Hintergrund
+    },
+    series: [
+        {
+            name: 'Photovoltaik (Erzeugung)',
+            type: 'bar',
+            stack: 'erzeugung', // Eigenes Stacking für die PV-Leistung
+            data: dataPV,
+            color: '#ffb74d', // Schönes Solar-Orange/Gelb
+            barMaxWidth: 15
+        },
+        {
+            name: 'EVU Bezug (Netz)',
+            type: 'bar',
+            stack: 'netz', // Trennung: Bezieht Netzwerte getrennt
+            data: dataBezug,
+            color: '#ef5350', // Netzbezug in Rot
+            barMaxWidth: 15
+        },
+        {
+            name: 'Einspeisung (Netz)',
+            type: 'bar',
+            stack: 'netz', // Wird mit dem Bezug in eine logische Gruppe gesteckt (oder separat)
+            data: dataEinspeisung,
+            color: '#66bb6a', // Einspeisung in Grün
+            barMaxWidth: 15
+        }
+    ]
+};
