@@ -1,0 +1,10 @@
+SELECT last("value") AS "Einspeisung"
+FROM "kWh"
+WHERE ("entity_id"::tag = 's02_einspeisung_verbrauch_kwh_2')
+  AND time <= ${__to}ms AND time > ${__to}ms - 90d
+
+
+SELECT last("value") AS "Einspeisung"
+FROM "kWh"
+WHERE ("entity_id"::tag = 's02_einspeisung_verbrauch_kwh_2')
+  AND time <= ${__from}ms AND time > ${__from}ms - 90d
