@@ -3,19 +3,10 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "add7rg7",
-    "namespace": "default",
-    "uid": "c8o3WbvEqAM2rBjn0WnDaSpbWPsJDY2N8etPSG6AH4QX",
-    "resourceVersion": "1779115910000300",
-    "generation": 179,
+    "generation": 186,
     "creationTimestamp": "2026-03-20T13:21:53Z",
-    "labels": {
-      "grafana.app/deprecatedInternalID": "19"
-    },
-    "annotations": {
-      "grafana.app/createdBy": "user:de62zdxopocu8f",
-      "grafana.app/updatedBy": "user:de62zdxopocu8f",
-      "grafana.app/updatedTimestamp": "2026-05-18T14:51:51Z"
-    }
+    "labels": {},
+    "annotations": {}
   },
   "spec": {
     "annotations": [
@@ -26,19 +17,16 @@
             "kind": "DataQuery",
             "group": "grafana",
             "version": "v0",
-            "datasource": {
-              "name": "-- Grafana --"
-            },
-            "spec": {}
+            "spec": {},
+            "labels": {
+              "grafana.app/export-label": "grafana-1"
+            }
           },
           "enable": true,
           "hide": true,
           "iconColor": "rgba(0, 211, 255, 1)",
           "name": "Annotations & Alerts",
-          "builtIn": true,
-          "legacyOptions": {
-            "type": "dashboard"
-          }
+          "builtIn": true
         }
       }
     ],
@@ -63,9 +51,6 @@
                       "kind": "DataQuery",
                       "group": "influxdb",
                       "version": "v0",
-                      "datasource": {
-                        "name": "ce6dp2xpn2kn4d"
-                      },
                       "spec": {
                         "alias": "EVU Bezug",
                         "groupBy": [
@@ -109,6 +94,10 @@
                             "value": "hauptzahler_verbrauch_kwh"
                           }
                         ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "influxdb-1",
+                        "grafana.app/export-datasource-name": "influxdb"
                       }
                     },
                     "refId": "A",
@@ -122,14 +111,15 @@
                       "kind": "DataQuery",
                       "group": "influxdb",
                       "version": "v0",
-                      "datasource": {
-                        "name": "ce6dp2xpn2kn4d"
-                      },
                       "spec": {
                         "alias": "Bauhof",
                         "query": "SELECT last(\"value\") - first(\"value\")  \nFROM \"kWh\"  \nWHERE (\"entity_id\"::tag = 'pr1_verbrauch_wirkenergie_kwh') AND $timeFilter \ntz('Europe/Berlin')",
                         "rawQuery": true,
                         "resultFormat": "time_series"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "influxdb-1",
+                        "grafana.app/export-datasource-name": "influxdb"
                       }
                     },
                     "refId": "E",
@@ -143,12 +133,13 @@
                       "kind": "DataQuery",
                       "group": "__expr__",
                       "version": "v0",
-                      "datasource": {
-                        "name": "__expr__"
-                      },
                       "spec": {
                         "expression": "$A - $E",
                         "type": "math"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "__expr__-1",
+                        "grafana.app/export-datasource-name": "Expression"
                       }
                     },
                     "refId": "EVU Bezug",
@@ -162,14 +153,15 @@
                       "kind": "DataQuery",
                       "group": "influxdb",
                       "version": "v0",
-                      "datasource": {
-                        "name": "ce6dp2xpn2kn4d"
-                      },
                       "spec": {
                         "alias": "Photovoltaik",
                         "query": "SELECT ((MAX(\"value\") - MIN(\"value\")) / 1000) AS \"Photovoltaik\"\nFROM \"kWh\"\nWHERE (\"entity_id\"::tag = 'tr_erzeugte_wirkenergiek_kwh') AND $timeFilter\ntz('Europe/Berlin')",
                         "rawQuery": true,
                         "resultFormat": "time_series"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "influxdb-1",
+                        "grafana.app/export-datasource-name": "influxdb"
                       }
                     },
                     "refId": "C",
@@ -183,14 +175,15 @@
                       "kind": "DataQuery",
                       "group": "influxdb",
                       "version": "v0",
-                      "datasource": {
-                        "name": "ce6dp2xpn2kn4d"
-                      },
                       "spec": {
                         "alias": "Einspeisung",
                         "query": "SELECT ((MAX(\"value\") - MIN(\"value\")) ) AS \"Einspeisung\"\nFROM \"kWh\"\nWHERE (\"entity_id\"::tag = 's02_einspeisung_verbrauch_kwh_2') AND $timeFilter\ntz('Europe/Berlin')",
                         "rawQuery": true,
                         "resultFormat": "time_series"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "influxdb-1",
+                        "grafana.app/export-datasource-name": "influxdb"
                       }
                     },
                     "refId": "D",
@@ -204,12 +197,13 @@
                       "kind": "DataQuery",
                       "group": "__expr__",
                       "version": "v0",
-                      "datasource": {
-                        "name": "__expr__"
-                      },
                       "spec": {
                         "expression": "$C -$D",
                         "type": "math"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "__expr__-1",
+                        "grafana.app/export-datasource-name": "Expression"
                       }
                     },
                     "refId": "Photovoltaik",
@@ -224,7 +218,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "piechart",
-            "version": "12.3.0",
+            "version": "13.3.0",
             "spec": {
               "options": {
                 "displayLabels": [
@@ -254,7 +248,8 @@
               "fieldConfig": {
                 "defaults": {
                   "color": {
-                    "mode": "palette-classic"
+                    "mode": "palette-classic",
+                    "fixedColor": "#73BF69"
                   },
                   "custom": {
                     "hideFrom": {
@@ -409,13 +404,166 @@
                   "spec": {
                     "query": {
                       "kind": "DataQuery",
+                      "group": "__expr__",
+                      "version": "v0",
+                      "spec": {
+                        "expression": "EinspeisungAnfang",
+                        "reducer": "last",
+                        "settings": {
+                          "mode": "replaceNN",
+                          "replaceWithValue": 0
+                        },
+                        "type": "reduce"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "__expr__-1",
+                        "grafana.app/export-datasource-name": "Expression"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": true
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "__expr__",
+                      "version": "v0",
+                      "spec": {
+                        "expression": "EinspeisungEnde",
+                        "reducer": "last",
+                        "settings": {
+                          "mode": "replaceNN",
+                          "replaceWithValue": 0
+                        },
+                        "type": "reduce"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "__expr__-1",
+                        "grafana.app/export-datasource-name": "Expression"
+                      }
+                    },
+                    "refId": "D",
+                    "hidden": true
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
                       "group": "influxdb",
                       "version": "v0",
-                      "datasource": {
-                        "name": "ce6dp2xpn2kn4d"
-                      },
                       "spec": {
-                        "alias": "EVU Bezug",
+                        "alias": "EinspeisungAnfang",
+                        "groupBy": [
+                          {
+                            "params": [
+                              "$__interval"
+                            ],
+                            "type": "time"
+                          },
+                          {
+                            "params": [
+                              "null"
+                            ],
+                            "type": "fill"
+                          }
+                        ],
+                        "orderByTime": "ASC",
+                        "policy": "default",
+                        "query": "SELECT last(\"value\") AS \"EinspeisungAnfang\"\nFROM \"kWh\"\nWHERE (\"entity_id\"::tag = 's02_einspeisung_verbrauch_kwh_2')\n  AND time <= ${__to}ms AND time > ${__to}ms - 365d",
+                        "rawQuery": true,
+                        "resultFormat": "table",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "value"
+                              ],
+                              "type": "field"
+                            },
+                            {
+                              "params": [],
+                              "type": "mean"
+                            }
+                          ]
+                        ],
+                        "tags": []
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "influxdb-1",
+                        "grafana.app/export-datasource-name": "influxdb"
+                      }
+                    },
+                    "refId": "EinspeisungAnfang",
+                    "hidden": true
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "influxdb",
+                      "version": "v0",
+                      "spec": {
+                        "alias": "EinspeisungEnde",
+                        "groupBy": [
+                          {
+                            "params": [
+                              "$__interval"
+                            ],
+                            "type": "time"
+                          },
+                          {
+                            "params": [
+                              "null"
+                            ],
+                            "type": "fill"
+                          }
+                        ],
+                        "orderByTime": "ASC",
+                        "policy": "default",
+                        "query": "SELECT last(\"value\") AS \"EinspeisungEnde\"\nFROM \"kWh\"\nWHERE (\"entity_id\"::tag = 's02_einspeisung_verbrauch_kwh_2')\n  AND time <= ${__from}ms AND time > ${__from}ms - 365d",
+                        "rawQuery": true,
+                        "resultFormat": "table",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "value"
+                              ],
+                              "type": "field"
+                            },
+                            {
+                              "params": [],
+                              "type": "mean"
+                            }
+                          ]
+                        ],
+                        "tags": []
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "influxdb-1",
+                        "grafana.app/export-datasource-name": "influxdb"
+                      }
+                    },
+                    "refId": "EinspeisungEnde",
+                    "hidden": true
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "influxdb",
+                      "version": "v0",
+                      "spec": {
+                        "alias": "",
                         "groupBy": [
                           {
                             "params": [
@@ -433,7 +581,7 @@
                         "measurement": "kWh",
                         "orderByTime": "ASC",
                         "policy": "default",
-                        "query": "SELECT last(\"value\") - first(\"value\")  \nFROM \"kWh\"  \nWHERE (\"entity_id\"::tag = 'hauptzahler_verbrauch_kwh') AND $timeFilter \ntz('Europe/Berlin')",
+                        "query": "SELECT last(\"value\") - first(\"value\")   AS EVU\nFROM \"kWh\"  \nWHERE (\"entity_id\"::tag = 'hauptzahler_verbrauch_kwh') AND $timeFilter \ntz('Europe/Berlin')",
                         "rawQuery": true,
                         "resultFormat": "time_series",
                         "select": [
@@ -457,9 +605,13 @@
                             "value": "hauptzahler_verbrauch_kwh"
                           }
                         ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "influxdb-1",
+                        "grafana.app/export-datasource-name": "influxdb"
                       }
                     },
-                    "refId": "A",
+                    "refId": "EVU",
                     "hidden": true
                   }
                 },
@@ -470,13 +622,45 @@
                       "kind": "DataQuery",
                       "group": "influxdb",
                       "version": "v0",
-                      "datasource": {
-                        "name": "ce6dp2xpn2kn4d"
-                      },
                       "spec": {
+                        "groupBy": [
+                          {
+                            "params": [
+                              "$__interval"
+                            ],
+                            "type": "time"
+                          },
+                          {
+                            "params": [
+                              "null"
+                            ],
+                            "type": "fill"
+                          }
+                        ],
+                        "orderByTime": "ASC",
+                        "policy": "default",
                         "query": "SELECT last(\"value\") - first(\"value\")  \nFROM \"kWh\"  \nWHERE (\"entity_id\"::tag = 'pr1_verbrauch_wirkenergie_kwh') AND $timeFilter \ntz('Europe/Berlin')",
                         "rawQuery": true,
-                        "resultFormat": "time_series"
+                        "resultFormat": "time_series",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "value"
+                              ],
+                              "type": "field"
+                            },
+                            {
+                              "params": [],
+                              "type": "mean"
+                            }
+                          ]
+                        ],
+                        "tags": []
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "influxdb-1",
+                        "grafana.app/export-datasource-name": "influxdb"
                       }
                     },
                     "refId": "E",
@@ -490,12 +674,13 @@
                       "kind": "DataQuery",
                       "group": "__expr__",
                       "version": "v0",
-                      "datasource": {
-                        "name": "__expr__"
-                      },
                       "spec": {
-                        "expression": "$A - $E",
+                        "expression": "$EVU - $E",
                         "type": "math"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "__expr__-1",
+                        "grafana.app/export-datasource-name": "Expression"
                       }
                     },
                     "refId": "EVU Bezug",
@@ -509,14 +694,46 @@
                       "kind": "DataQuery",
                       "group": "influxdb",
                       "version": "v0",
-                      "datasource": {
-                        "name": "ce6dp2xpn2kn4d"
-                      },
                       "spec": {
                         "alias": "Photovoltaik",
-                        "query": "SELECT ((MAX(\"value\") - MIN(\"value\")) / 1000) AS \"Photovoltaik\"\nFROM \"kWh\"\nWHERE (\"entity_id\"::tag = 'tr_erzeugte_wirkenergiek_kwh') AND $timeFilter\ntz('Europe/Berlin')",
+                        "groupBy": [
+                          {
+                            "params": [
+                              "$__interval"
+                            ],
+                            "type": "time"
+                          },
+                          {
+                            "params": [
+                              "null"
+                            ],
+                            "type": "fill"
+                          }
+                        ],
+                        "orderByTime": "ASC",
+                        "policy": "default",
+                        "query": "SELECT ((MAX(\"value\") - MIN(\"value\")) / 1000) AS \" \"\nFROM \"kWh\"\nWHERE (\"entity_id\"::tag = 'tr_erzeugte_wirkenergiek_kwh') AND $timeFilter\ntz('Europe/Berlin')",
                         "rawQuery": true,
-                        "resultFormat": "time_series"
+                        "resultFormat": "time_series",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "value"
+                              ],
+                              "type": "field"
+                            },
+                            {
+                              "params": [],
+                              "type": "mean"
+                            }
+                          ]
+                        ],
+                        "tags": []
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "influxdb-1",
+                        "grafana.app/export-datasource-name": "influxdb"
                       }
                     },
                     "refId": "C",
@@ -528,19 +745,18 @@
                   "spec": {
                     "query": {
                       "kind": "DataQuery",
-                      "group": "influxdb",
+                      "group": "__expr__",
                       "version": "v0",
-                      "datasource": {
-                        "name": "ce6dp2xpn2kn4d"
-                      },
                       "spec": {
-                        "alias": "Einspeisung",
-                        "query": "SELECT ((MAX(\"value\") - MIN(\"value\")) ) AS \"Einspeisung\"\nFROM \"kWh\"\nWHERE (\"entity_id\"::tag = 's02_einspeisung_verbrauch_kwh_2') AND $timeFilter\ntz('Europe/Berlin')",
-                        "rawQuery": true,
-                        "resultFormat": "time_series"
+                        "expression": "$D -$A",
+                        "type": "math"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "__expr__-1",
+                        "grafana.app/export-datasource-name": "Expression"
                       }
                     },
-                    "refId": "D",
+                    "refId": "Einspeisung",
                     "hidden": false
                   }
                 },
@@ -551,12 +767,13 @@
                       "kind": "DataQuery",
                       "group": "__expr__",
                       "version": "v0",
-                      "datasource": {
-                        "name": "__expr__"
-                      },
                       "spec": {
-                        "expression": "$A - $E + $C -$D",
+                        "expression": "$EVU - $E + $C - ($Einspeisung)",
                         "type": "math"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "__expr__-1",
+                        "grafana.app/export-datasource-name": "Expression"
                       }
                     },
                     "refId": "Gesamt Verbrauch",
@@ -568,19 +785,18 @@
                   "spec": {
                     "query": {
                       "kind": "DataQuery",
-                      "group": "influxdb",
+                      "group": "__expr__",
                       "version": "v0",
-                      "datasource": {
-                        "name": "ce6dp2xpn2kn4d"
-                      },
                       "spec": {
-                        "alias": "Gas Verbrauch",
-                        "query": "SELECT last(\"value\") - first(\"value\") \nFROM \"m³\" \nWHERE (\"entity_id\"::tag = 's02_verbrauch_zahlerstand_m3') AND $timeFilter\ntz('Europe/Berlin')",
-                        "rawQuery": true,
-                        "resultFormat": "time_series"
+                        "expression": "($C - ($Einspeisung) ) * 0.4",
+                        "type": "math"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "__expr__-1",
+                        "grafana.app/export-datasource-name": "Expression"
                       }
                     },
-                    "refId": "B",
+                    "refId": "CO2 Ersparnis",
                     "hidden": false
                   }
                 },
@@ -589,17 +805,51 @@
                   "spec": {
                     "query": {
                       "kind": "DataQuery",
-                      "group": "__expr__",
+                      "group": "influxdb",
                       "version": "v0",
-                      "datasource": {
-                        "name": "__expr__"
-                      },
                       "spec": {
-                        "expression": "($C - $D) * 0.4",
-                        "type": "math"
+                        "alias": "Gas Verbrauch",
+                        "groupBy": [
+                          {
+                            "params": [
+                              "$__interval"
+                            ],
+                            "type": "time"
+                          },
+                          {
+                            "params": [
+                              "null"
+                            ],
+                            "type": "fill"
+                          }
+                        ],
+                        "orderByTime": "ASC",
+                        "policy": "default",
+                        "query": "SELECT last(\"value\") - first(\"value\") \nFROM \"m³\" \nWHERE (\"entity_id\"::tag = 's02_verbrauch_zahlerstand_m3') AND $timeFilter\ntz('Europe/Berlin')",
+                        "rawQuery": true,
+                        "resultFormat": "time_series",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "value"
+                              ],
+                              "type": "field"
+                            },
+                            {
+                              "params": [],
+                              "type": "mean"
+                            }
+                          ]
+                        ],
+                        "tags": []
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "influxdb-1",
+                        "grafana.app/export-datasource-name": "influxdb"
                       }
                     },
-                    "refId": "CO2 Ersparnis",
+                    "refId": "B",
                     "hidden": false
                   }
                 }
@@ -611,7 +861,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "stat",
-            "version": "12.3.0",
+            "version": "13.3.0",
             "spec": {
               "options": {
                 "colorMode": "value",
@@ -650,7 +900,8 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Gesamt Verbrauch"
+                      "scope": "series",
+                      "options": "Gesamt Verbrauch Photovoltaik"
                     },
                     "properties": [
                       {
@@ -734,7 +985,8 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "CO2 Ersparnis"
+                      "scope": "series",
+                      "options": "CO2 Ersparnis Photovoltaik"
                     },
                     "properties": [
                       {
@@ -780,6 +1032,7 @@
         "spec": {
           "id": 4,
           "title": "",
+          "description": "",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -792,9 +1045,6 @@
                       "kind": "DataQuery",
                       "group": "influxdb",
                       "version": "v0",
-                      "datasource": {
-                        "name": "ce6dp2xpn2kn4d"
-                      },
                       "spec": {
                         "alias": "",
                         "groupBy": [
@@ -838,6 +1088,10 @@
                             "value": "hauptzahler_verbrauch_kwh"
                           }
                         ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "influxdb-1",
+                        "grafana.app/export-datasource-name": "influxdb"
                       }
                     },
                     "refId": "A",
@@ -851,14 +1105,46 @@
                       "kind": "DataQuery",
                       "group": "influxdb",
                       "version": "v0",
-                      "datasource": {
-                        "name": "ce6dp2xpn2kn4d"
-                      },
                       "spec": {
                         "alias": "Bauhof Bezug",
+                        "groupBy": [
+                          {
+                            "params": [
+                              "$__interval"
+                            ],
+                            "type": "time"
+                          },
+                          {
+                            "params": [
+                              "null"
+                            ],
+                            "type": "fill"
+                          }
+                        ],
+                        "orderByTime": "ASC",
+                        "policy": "default",
                         "query": "SELECT non_negative_difference(last(\"value\")) AS \"EVU\"\nFROM \"kWh\"  \nWHERE (\"entity_id\"::tag = 'pr1_verbrauch_wirkenergie_kwh') AND $timeFilter\nGROUP BY time($Bucket) fill(previous)\n",
                         "rawQuery": true,
-                        "resultFormat": "time_series"
+                        "resultFormat": "time_series",
+                        "select": [
+                          [
+                            {
+                              "params": [
+                                "value"
+                              ],
+                              "type": "field"
+                            },
+                            {
+                              "params": [],
+                              "type": "mean"
+                            }
+                          ]
+                        ],
+                        "tags": []
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "influxdb-1",
+                        "grafana.app/export-datasource-name": "influxdb"
                       }
                     },
                     "refId": "D",
@@ -872,12 +1158,13 @@
                       "kind": "DataQuery",
                       "group": "__expr__",
                       "version": "v0",
-                      "datasource": {
-                        "name": "__expr__"
-                      },
                       "spec": {
                         "expression": "$A - $D",
                         "type": "math"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "__expr__-1",
+                        "grafana.app/export-datasource-name": "Expression"
                       }
                     },
                     "refId": "EVU Bezug",
@@ -891,14 +1178,15 @@
                       "kind": "DataQuery",
                       "group": "influxdb",
                       "version": "v0",
-                      "datasource": {
-                        "name": "ce6dp2xpn2kn4d"
-                      },
                       "spec": {
                         "alias": "Photovoltaik",
                         "query": "SELECT non_negative_difference(last(\"value\")) /  1000 AS \"Photovoltaik\"\nFROM \"kWh\"  \nWHERE (\"entity_id\"::tag = 'tr_erzeugte_wirkenergiek_kwh') AND $timeFilter\nGROUP BY time($Bucket) fill(previous)",
                         "rawQuery": true,
                         "resultFormat": "time_series"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "influxdb-1",
+                        "grafana.app/export-datasource-name": "influxdb"
                       }
                     },
                     "refId": "B",
@@ -912,18 +1200,19 @@
                       "kind": "DataQuery",
                       "group": "influxdb",
                       "version": "v0",
-                      "datasource": {
-                        "name": "ce6dp2xpn2kn4d"
-                      },
                       "spec": {
                         "alias": "Einspeisung",
                         "query": "SELECT non_negative_difference(last(\"value\")) AS \"Einspeisung\"\nFROM \"kWh\"  \nWHERE (\"entity_id\"::tag = 's02_einspeisung_verbrauch_kwh_2') AND $timeFilter\nGROUP BY time($Bucket) fill(previous)",
                         "rawQuery": true,
                         "resultFormat": "time_series"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "influxdb-1",
+                        "grafana.app/export-datasource-name": "influxdb"
                       }
                     },
                     "refId": "C",
-                    "hidden": true
+                    "hidden": false
                   }
                 },
                 {
@@ -933,12 +1222,13 @@
                       "kind": "DataQuery",
                       "group": "__expr__",
                       "version": "v0",
-                      "datasource": {
-                        "name": "__expr__"
-                      },
                       "spec": {
-                        "expression": "(($B > 0) * $B)  - (($C > 0) * $C)",
+                        "expression": "(($B > 0) * $B)  - (($Einspeisung > 0) * $Einspeisung)",
                         "type": "math"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "__expr__-1",
+                        "grafana.app/export-datasource-name": "Expression"
                       }
                     },
                     "refId": "Photovoltaik",
@@ -952,15 +1242,128 @@
                       "kind": "DataQuery",
                       "group": "__expr__",
                       "version": "v0",
-                      "datasource": {
-                        "name": "__expr__"
-                      },
                       "spec": {
-                        "expression": "(($A  > 0) * ($A - $D) ) + (($B > 0) * $B)  - (($C > 0) * $C)",
+                        "expression": "(($A  > 0) * ($A - $D) ) + (($B > 0) * $B)  - (($Einspeisung > 0) * $Einspeisung)",
                         "type": "math"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "__expr__-1",
+                        "grafana.app/export-datasource-name": "Expression"
                       }
                     },
                     "refId": "Gesamt Verbrauch",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "influxdb",
+                      "version": "v0",
+                      "spec": {
+                        "query": "SELECT last(\"value\") AS \"EinspeisungAnfang\"\nFROM \"kWh\"\nWHERE (\"entity_id\"::tag = 's02_einspeisung_verbrauch_kwh_2')\n  AND time <= ${__to}ms AND time > ${__to}ms - 365d",
+                        "rawQuery": true,
+                        "resultFormat": "time_series"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "influxdb-1",
+                        "grafana.app/export-datasource-name": "influxdb"
+                      }
+                    },
+                    "refId": "E",
+                    "hidden": true
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "influxdb",
+                      "version": "v0",
+                      "spec": {
+                        "query": "SELECT last(\"value\") AS \"EinspeisungEnde\"\nFROM \"kWh\"\nWHERE (\"entity_id\"::tag = 's02_einspeisung_verbrauch_kwh_2')\n  AND time <= ${__from}ms AND time > ${__from}ms - 365d",
+                        "rawQuery": true,
+                        "resultFormat": "time_series"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "influxdb-1",
+                        "grafana.app/export-datasource-name": "influxdb"
+                      }
+                    },
+                    "refId": "F",
+                    "hidden": true
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "__expr__",
+                      "version": "v0",
+                      "spec": {
+                        "expression": "$G - $H",
+                        "type": "math"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "__expr__-1",
+                        "grafana.app/export-datasource-name": "Expression"
+                      }
+                    },
+                    "refId": "Einspeisung",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "__expr__",
+                      "version": "v0",
+                      "spec": {
+                        "expression": "E",
+                        "reducer": "last",
+                        "settings": {
+                          "mode": "replaceNN",
+                          "replaceWithValue": 0
+                        },
+                        "type": "reduce"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "__expr__-1",
+                        "grafana.app/export-datasource-name": "Expression"
+                      }
+                    },
+                    "refId": "G",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "__expr__",
+                      "version": "v0",
+                      "spec": {
+                        "expression": "F",
+                        "reducer": "last",
+                        "settings": {
+                          "mode": "replaceNN",
+                          "replaceWithValue": 0
+                        },
+                        "type": "reduce"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "__expr__-1",
+                        "grafana.app/export-datasource-name": "Expression"
+                      }
+                    },
+                    "refId": "H",
                     "hidden": false
                   }
                 }
@@ -972,7 +1375,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "12.3.0",
+            "version": "13.3.0",
             "spec": {
               "options": {
                 "legend": {
@@ -1060,7 +1463,8 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Gesamt Verbrauch Einspeisung"
+                      "scope": "series",
+                      "options": "Gesamt Verbrauch"
                     },
                     "properties": [
                       {
@@ -1093,7 +1497,8 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Photovoltaik"
+                      "scope": "series",
+                      "options": "Photovoltaik Photovoltaik"
                     },
                     "properties": [
                       {
@@ -1144,6 +1549,7 @@
         "spec": {
           "id": 6,
           "title": "Gas Verbrauch: Von ${__from:date:YYYY-MM-DD HH:mm} Bis ${__to:date:YYYY-MM-DD HH:mm}",
+          "description": "",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -1156,14 +1562,15 @@
                       "kind": "DataQuery",
                       "group": "influxdb",
                       "version": "v0",
-                      "datasource": {
-                        "name": "ce6dp2xpn2kn4d"
-                      },
                       "spec": {
                         "alias": "Gas Verbrauch Halle",
                         "query": "SELECT LAST(\"value\") - FIRST(\"value\")\nFROM \"m³\" \nWHERE (\"entity_id\"::tag = 's02_verbrauch_zahlerstand_m3') AND $timeFilter\n",
                         "rawQuery": true,
                         "resultFormat": "time_series"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "influxdb-1",
+                        "grafana.app/export-datasource-name": "influxdb"
                       }
                     },
                     "refId": "B",
@@ -1178,7 +1585,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "barchart",
-            "version": "12.3.0",
+            "version": "13.3.0",
             "spec": {
               "options": {
                 "barRadius": 0.1,
@@ -1302,6 +1709,7 @@
         "spec": {
           "id": 7,
           "title": "",
+          "description": "",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -1314,14 +1722,15 @@
                       "kind": "DataQuery",
                       "group": "influxdb",
                       "version": "v0",
-                      "datasource": {
-                        "name": "ce6dp2xpn2kn4d"
-                      },
                       "spec": {
                         "alias": "Gas Verbrauch Halle",
                         "query": "SELECT difference(last(\"value\"))\nFROM \"m³\" \nWHERE (\"entity_id\"::tag = 's02_verbrauch_zahlerstand_m3') AND $timeFilter\nGROUP BY time($Bucket) fill(previous)",
                         "rawQuery": true,
                         "resultFormat": "time_series"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "influxdb-1",
+                        "grafana.app/export-datasource-name": "influxdb"
                       }
                     },
                     "refId": "B",
@@ -1336,7 +1745,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "timeseries",
-            "version": "12.3.0",
+            "version": "13.3.0",
             "spec": {
               "options": {
                 "legend": {
@@ -1434,6 +1843,7 @@
         "spec": {
           "id": 9,
           "title": "",
+          "description": "",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -1446,9 +1856,6 @@
                       "kind": "DataQuery",
                       "group": "influxdb",
                       "version": "v0",
-                      "datasource": {
-                        "name": "ce6dp2xpn2kn4d"
-                      },
                       "spec": {
                         "alias": "",
                         "groupBy": [
@@ -1492,6 +1899,10 @@
                             "value": "hauptzahler_verbrauch_kwh"
                           }
                         ]
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "influxdb-1",
+                        "grafana.app/export-datasource-name": "influxdb"
                       }
                     },
                     "refId": "A",
@@ -1505,14 +1916,15 @@
                       "kind": "DataQuery",
                       "group": "influxdb",
                       "version": "v0",
-                      "datasource": {
-                        "name": "ce6dp2xpn2kn4d"
-                      },
                       "spec": {
                         "alias": "Bauhof",
                         "query": "SELECT last(\"value\") - first(\"value\")  \nFROM \"kWh\"  \nWHERE (\"entity_id\"::tag = 'pr1_verbrauch_wirkenergie_kwh') AND $timeFilter \ntz('Europe/Berlin')",
                         "rawQuery": true,
                         "resultFormat": "time_series"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "influxdb-1",
+                        "grafana.app/export-datasource-name": "influxdb"
                       }
                     },
                     "refId": "B",
@@ -1526,12 +1938,13 @@
                       "kind": "DataQuery",
                       "group": "__expr__",
                       "version": "v0",
-                      "datasource": {
-                        "name": "__expr__"
-                      },
                       "spec": {
                         "expression": "$A - $B",
                         "type": "math"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "__expr__-1",
+                        "grafana.app/export-datasource-name": "Expression"
                       }
                     },
                     "refId": "EVU Bezug",
@@ -1545,14 +1958,15 @@
                       "kind": "DataQuery",
                       "group": "influxdb",
                       "version": "v0",
-                      "datasource": {
-                        "name": "ce6dp2xpn2kn4d"
-                      },
                       "spec": {
                         "alias": "",
                         "query": "SELECT ((MAX(\"value\") - MIN(\"value\")) / 1000) AS \"Photovoltaik\"\nFROM \"kWh\"\nWHERE (\"entity_id\"::tag = 'tr_erzeugte_wirkenergiek_kwh') AND $timeFilter\ntz('Europe/Berlin')",
                         "rawQuery": true,
                         "resultFormat": "time_series"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "influxdb-1",
+                        "grafana.app/export-datasource-name": "influxdb"
                       }
                     },
                     "refId": "C",
@@ -1566,12 +1980,13 @@
                       "kind": "DataQuery",
                       "group": "__expr__",
                       "version": "v0",
-                      "datasource": {
-                        "name": "__expr__"
-                      },
                       "spec": {
                         "expression": "$C - $B",
                         "type": "math"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "__expr__-1",
+                        "grafana.app/export-datasource-name": "Expression"
                       }
                     },
                     "refId": "Photovoltaik",
@@ -1586,7 +2001,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "barchart",
-            "version": "12.3.0",
+            "version": "13.3.0",
             "spec": {
               "options": {
                 "barRadius": 0.35,
@@ -1811,8 +2226,8 @@
     ],
     "timeSettings": {
       "timezone": "browser",
-      "from": "now-6h",
-      "to": "now",
+      "from": "2026-11-12T23:00:00.000Z",
+      "to": "2026-11-15T22:59:59.000Z",
       "autoRefresh": "",
       "autoRefreshIntervals": [
         "5s",
@@ -1837,19 +2252,14 @@
           "name": "Bucket",
           "query": "15m,30m,1h,6h,12h,1d",
           "current": {
-            "text": "1m",
-            "value": "1m"
+            "text": "1h",
+            "value": "1h"
           },
           "options": [
             {
-              "selected": true,
-              "text": "1m",
-              "value": "1m"
-            },
-            {
               "selected": false,
-              "text": "10m",
-              "value": "10m"
+              "text": "15m",
+              "value": "15m"
             },
             {
               "selected": false,
@@ -1857,7 +2267,7 @@
               "value": "30m"
             },
             {
-              "selected": false,
+              "selected": true,
               "text": "1h",
               "value": "1h"
             },
@@ -1875,21 +2285,6 @@
               "selected": false,
               "text": "1d",
               "value": "1d"
-            },
-            {
-              "selected": false,
-              "text": "7d",
-              "value": "7d"
-            },
-            {
-              "selected": false,
-              "text": "14d",
-              "value": "14d"
-            },
-            {
-              "selected": false,
-              "text": "30d",
-              "value": "30d"
             }
           ],
           "auto": false,
